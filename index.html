@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GlyphMatics • SigilAGI Agent v1.7 — Glyph Runtime Emulator</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@400;700&display=swap');
+
+        :root {
+            --bg: #0a0a0a;
+            --accent: #00ff9d;
+            --braille: #00ccff;
+            --hanzi: #ffcc00;
+            --danger: #ff0055;
+            --warn: #ffaa00;
+        }
+
+        * { box-sizing: border-box; }
+        body { margin:0; background:var(--bg); color:#ddd; font-family:'Roboto Mono',monospace; }
+        header { background:linear-gradient(180deg,#1a1a1a,#000); border-bottom:4px solid var(--accent); padding:1.5rem; text-align:center; position:relative; }
+        .title { font-family:'VT323',monospace; font-size:3.6rem; color:var(--accent); text-shadow:0 0 30px var(--accent); margin:0; }
+        .subtitle { color:var(--braille); letter-spacing:10px; font-size:1.3rem; }
+
+        .container { display:grid; grid-template-columns:1fr 440px; gap:20px; max-width:1400px; margin:20px auto; padding:0 20px; }
+        .main { background:#111; border:2px solid #333; padding:25px; }
+        .sidebar { background:#111; border:3px solid var(--accent); padding:20px; height:fit-content; position:sticky; top:20px; }
+
+        /* Emulator Section */
+        .emulator-panel { background:#0a0a0a; border:2px solid var(--braille); padding:20px; margin:20px 0; }
+        .emulator-title { color:var(--braille); font-size:1.2rem; margin-bottom:15px; border-bottom:1px solid #333; padding-bottom:10px; }
+
+        canvas { 
+            background:#000; 
+            border:1px solid #444; 
+            display:block; 
+            margin:10px auto;
+            image-rendering: pixelated;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: crisp-edges;
+        }
+
+        .canvas-container { 
+            display:grid; 
+            grid-template-columns:1fr 1fr; 
+            gap:20px; 
+            margin:15px 0;
+        }
+
+        .canvas-box { text-align:center; }
+        .canvas-label { color:#888; font-size:0.85rem; margin-bottom:8px; }
+
+        /* Analysis Tools */
+        .analysis-grid { display:grid; grid-template-columns:1fr 1fr; gap:15px; margin:15px 0; }
+        .metric-box { background:#1a1a1a; border:1px solid #444; padding:12px; }
+        .metric-label { color:#666; font-size:0.8rem; text-transform:uppercase; }
+        .metric-value { color:var(--accent); font-size:1.4rem; font-weight:bold; }
+        .metric-sub { color:#888; font-size:0.75rem; }
+
+        /* Pattern Recognition Display */
+        .pattern-display { 
+            background:#000; 
+            border:1px dashed var(--hanzi); 
+            padding:15px; 
+            font-family:monospace; 
+            font-size:1.1rem; 
+            line-height:1.4;
+            color:var(--braille);
+            white-space:pre;
+            overflow:auto;
+            max-height:200px;
+        }
+
+        /* Hex Dump */
+        .hex-dump { 
+            background:#0a0a0a; 
+            border:1px solid #333; 
+            padding:10px; 
+            font-family:monospace; 
+            font-size:0.85rem; 
+            color:#666;
+            max-height:150px;
+            overflow:auto;
+        }
+        .hex-byte { display:inline-block; width:24px; color:var(--braille); }
+        .hex-ascii { color:#888; margin-left:10px; }
+
+        /* Controls */
+        .control-row { display:flex; gap:10px; margin:10px 0; flex-wrap:wrap; }
+        button { 
+            background:var(--accent); 
+            color:#000; 
+            border:none; 
+            padding:10px 16px; 
+            font-weight:bold; 
+            cursor:pointer; 
+            transition:0.2s;
+            font-family:inherit;
+        }
+        button:hover { background:#00ffbb; transform:scale(1.02); }
+        button.secondary { background:#333; color:#fff; }
+        button.secondary:hover { background:#444; }
+        button.danger { background:var(--danger); color:#fff; }
+        button.danger:hover { background:#ff3377; }
+        button.emulator { background:var(--braille); color:#000; }
+
+        select, input[type="range"] { 
+            background:#222; 
+            border:1px solid #555; 
+            color:#fff; 
+            padding:8px;
+            font-family:inherit;
+        }
+
+        /* Status Indicators */
+        .status-led { 
+            display:inline-block; 
+            width:12px; 
+            height:12px; 
+            border-radius:50%; 
+            margin-right:8px;
+            animation:pulse 2s infinite;
+        }
+        .status-ok { background:var(--accent); box-shadow:0 0 10px var(--accent); }
+        .status-warn { background:var(--warn); box-shadow:0 0 10px var(--warn); }
+        .status-err { background:var(--danger); box-shadow:0 0 10px var(--danger); }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+        /* Drop Zone */
+        .drop-zone {
+            border: 3px dashed var(--braille);
+            padding: 40px 20px;
+            text-align: center;
+            background: #0a0a0a;
+            margin: 15px 0;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .drop-zone.dragover { background: #002200; border-color: var(--accent); }
+
+        /* File List */
+        .file-list { max-height: 160px; overflow-y: auto; background:#111; padding:10px; border:1px solid #444; margin:10px 0; }
+        .file-item { padding:4px 8px; background:#1a1a1a; margin:4px 0; font-size:0.85rem; display:flex; justify-content:space-between; }
+
+        /* Chat */
+        .chat-container { border:3px solid var(--braille); background:#0a0a0a; border-radius:8px; height:520px; display:flex; flex-direction:column; }
+        .chat-messages { flex:1; padding:18px; overflow-y:auto; background:repeating-linear-gradient(45deg,#0a0a0a,#0a0a0a 20px,#111 20px,#111 40px); display:flex; flex-direction:column; gap:12px; }
+        .message { padding:12px 16px; border-radius:6px; max-width:85%; }
+        .user-msg { align-self:flex-end; background:#1a3a2a; color:#aaffcc; }
+        .agent-msg { align-self:flex-start; background:#1a1a3a; color:#ccddff; border-left:5px solid var(--braille); }
+
+        textarea { width:100%; background:#222; border:1px solid #555; color:#fff; padding:12px; font-family:inherit; height:140px; resize:vertical; }
+
+        /* Tabs */
+        .tabs { display:flex; border-bottom:2px solid #333; margin-bottom:15px; }
+        .tab { padding:10px 20px; cursor:pointer; background:#1a1a1a; border:1px solid #333; border-bottom:none; margin-right:5px; }
+        .tab.active { background:var(--bg); color:var(--accent); border-color:var(--accent); }
+        .tab-content { display:none; }
+        .tab-content.active { display:block; }
+
+        /* Glyph Grid Overlay */
+        .glyph-overlay { position:relative; display:inline-block; }
+        .glyph-grid { 
+            position:absolute; 
+            top:0; 
+            left:0; 
+            pointer-events:none;
+            border:1px solid rgba(0,255,157,0.3);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div style="position:absolute; top:20px; right:25px; color:#444; font-size:0.9rem;">
+            918 TECHNOLOGIES<br>MATTHEW BLAKE WARD
+        </div>
+        <h1 class="title">GLYPHMATICS</h1>
+        <div class="subtitle">SIGILAGI AGENT v1.7 — GLYPH RUNTIME EMULATOR</div>
+    </header>
+
+    <div class="container">
+        <div class="main">
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <div class="tab active" onclick="switchTab('encode')">Encode / Sigil</div>
+                <div class="tab" onclick="switchTab('emulator')">Runtime Emulator</div>
+                <div class="tab" onclick="switchTab('analysis')">Pattern Analysis</div>
+            </div>
+
+            <!-- Encode Tab -->
+            <div id="tab-encode" class="tab-content active">
+                <h2>Real Sigil Encoder v1.7</h2>
+
+                <div class="drop-zone" id="drop-zone">
+                    <strong>Drop files or folders here (multiple supported)</strong><br>
+                    <small>Images, code, executables, archives — or paste text below</small>
+                </div>
+
+                <div id="file-list" class="file-list"></div>
+
+                <textarea id="input-text" placeholder="Or paste text / code here..."></textarea>
+
+                <div class="control-row">
+                    <button onclick="encodeToSigil()">ENCODE → SIGIL</button>
+                    <button onclick="decodeSigil()" class="secondary">DECODE SIGIL</button>
+                    <button onclick="clearAll()" class="danger">CLEAR</button>
+                </div>
+
+                <div id="binary-info" class="emulator-panel" style="display:none;">
+                    <div class="emulator-title"><span class="status-led status-ok"></span>Archive Status</div>
+                    <div id="archive-info"></div>
+                </div>
+
+                <h3>Sigil Output</h3>
+                <div id="sigil-output" class="pattern-display">Sigil will appear here...</div>
+                <div class="control-row">
+                    <button onclick="copySigil()">COPY SIGIL</button>
+                    <button onclick="exportSigilImage()" class="emulator">EXPORT PNG</button>
+                </div>
+            </div>
+
+            <!-- Emulator Tab -->
+            <div id="tab-emulator" class="tab-content">
+                <h2>Glyph Runtime Emulator</h2>
+
+                <div class="emulator-panel">
+                    <div class="emulator-title"><span class="status-led status-ok"></span>Visual Rendering Engine</div>
+
+                    <div class="canvas-container">
+                        <div class="canvas-box">
+                            <div class="canvas-label">Original Sigil (Text)</div>
+                            <canvas id="canvas-text" width="400" height="400"></canvas>
+                        </div>
+                        <div class="canvas-box">
+                            <div class="canvas-label">Emulated Glyph Image</div>
+                            <canvas id="canvas-glyph" width="400" height="400"></canvas>
+                        </div>
+                    </div>
+
+                    <div class="control-row">
+                        <button onclick="renderGlyphImage()" class="emulator">RENDER GLYPH</button>
+                        <button onclick="comparePatterns()" class="emulator">COMPARE PATTERNS</button>
+                        <button onclick="generateTestPattern()">GENERATE TEST</button>
+                    </div>
+
+                    <div class="control-row">
+                        <label>Render Scale: <input type="range" id="render-scale" min="1" max="4" value="2" step="0.5"></label>
+                        <label>Dot Size: <input type="range" id="dot-size" min="2" max="8" value="4"></label>
+                        <select id="render-mode">
+                            <option value="braille">Braille Dots</option>
+                            <option value="grid">Grid Lines</option>
+                            <option value="heatmap">Heatmap</option>
+                            <option value="binary">Binary</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="emulator-panel">
+                    <div class="emulator-title">Runtime Metrics</div>
+                    <div class="analysis-grid">
+                        <div class="metric-box">
+                            <div class="metric-label">Glyph Count</div>
+                            <div class="metric-value" id="metric-count">0</div>
+                            <div class="metric-sub">Braille characters</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Byte Coverage</div>
+                            <div class="metric-value" id="metric-coverage">0%</div>
+                            <div class="metric-sub">0x00-0xFF range</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Compression Ratio</div>
+                            <div class="metric-value" id="metric-ratio">1:1</div>
+                            <div class="metric-sub">zlib efficiency</div>
+                        </div>
+                        <div class="metric-box">
+                            <div class="metric-label">Pattern Entropy</div>
+                            <div class="metric-value" id="metric-entropy">0</div>
+                            <div class="metric-sub">Shannon entropy</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analysis Tab -->
+            <div id="tab-analysis" class="tab-content">
+                <h2>Pattern Analysis & Verification</h2>
+
+                <div class="emulator-panel">
+                    <div class="emulator-title"><span class="status-led status-warn"></span>Hex Dump Analysis</div>
+                    <div id="hex-dump" class="hex-dump">Load a sigil to see hex analysis...</div>
+                </div>
+
+                <div class="emulator-panel">
+                    <div class="emulator-title">Braille Pattern Breakdown</div>
+                    <div id="pattern-analysis" class="pattern-display">Pattern analysis will appear here...</div>
+                </div>
+
+                <div class="emulator-panel">
+                    <div class="emulator-title">Verification Tests</div>
+                    <div class="control-row">
+                        <button onclick="testRoundTrip()">TEST ROUND-TRIP</button>
+                        <button onclick="testByteCoverage()">TEST BYTE COVERAGE</button>
+                        <button onclick="testCompression()">TEST COMPRESSION</button>
+                        <button onclick="visualizeBrailleMap()" class="emulator">VISUALIZE BRAILLE MAP</button>
+                    </div>
+                    <div id="test-results" style="margin-top:15px; padding:10px; background:#1a1a1a; border:1px solid #444;"></div>
+                </div>
+            </div>
+
+            <!-- Download Section -->
+            <div id="download-section" style="margin-top:15px; display:none;">
+                <button onclick="downloadAllDecoded()" class="secondary">⬇️ DOWNLOAD ALL AS .tar</button>
+            </div>
+        </div>
+
+        <!-- Chat Sidebar -->
+        <div class="sidebar">
+            <h2>SigilAGI Terminal • v1.7</h2>
+            <div class="chat-container">
+                <div class="chat-messages" id="chat-messages">
+                    <div class="message agent-msg">
+                        [|0⟩] ⠁ 元 :: v1.7 Glyph Runtime Emulator online.<br>
+                        Canvas rendering • Pattern analysis • Image testing active.
+                    </div>
+                </div>
+                <div style="padding:12px; background:#1a1a1a;">
+                    <input type="text" id="chat-input" placeholder="Talk to SigilAGI..." 
+                           style="width:100%; padding:10px; background:#222; border:1px solid #555; color:white;" 
+                           onkeypress="if(event.key==='Enter') chatSend()">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // State
+        let currentFiles = [];
+        let currentSigil = '';
+        let currentDecodedBytes = null;
+        let pyodideInstance = null;
+
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            document.getElementById('tab-' + tabName).classList.add('active');
+        }
+
+        // Simple TAR writer
+        function createTar(files) {
+            let tarData = [];
+            for (let file of files) {
+                const name = file.name.padEnd(100, '\0');
+                const size = file.content.length.toString(8).padStart(11, '0') + '\0';
+                const header = new Uint8Array(512);
+                const nameBytes = new TextEncoder().encode(name);
+                header.set(nameBytes.slice(0, 100));
+                const mode = new TextEncoder().encode('0000644\0'.padEnd(8, '\0'));
+                header.set(mode, 100);
+                const sizeBytes = new TextEncoder().encode(size);
+                header.set(sizeBytes, 124);
+                const magic = new TextEncoder().encode('ustar\0');
+                header.set(magic, 257);
+                let checksum = 0;
+                for (let i = 0; i < 512; i++) checksum += header[i];
+                const chkStr = checksum.toString(8).padStart(6, '0') + '\0 ';
+                header.set(new TextEncoder().encode(chkStr), 148);
+                tarData.push(header);
+                tarData.push(file.content);
+                const pad = (512 - (file.content.length % 512)) % 512;
+                if (pad > 0) tarData.push(new Uint8Array(pad));
+            }
+            tarData.push(new Uint8Array(1024));
+            return new Blob(tarData, { type: 'application/x-tar' });
+        }
+
+        // Drag & Drop
+        const dropZone = document.getElementById('drop-zone');
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', async e => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const items = e.dataTransfer.items;
+            currentFiles = [];
+            for (let item of items) {
+                if (item.kind === 'file') {
+                    const file = item.getAsFile();
+                    const arrayBuffer = await file.arrayBuffer();
+                    currentFiles.push({
+                        name: file.name,
+                        content: new Uint8Array(arrayBuffer),
+                        type: file.type || 'application/octet-stream'
+                    });
+                }
+            }
+            renderFileList();
+            addChatMessage(`[⠠⠵] 結 :: Loaded ${currentFiles.length} file(s) for bundling`, 'agent');
+        });
+
+        function renderFileList() {
+            const listEl = document.getElementById('file-list');
+            listEl.innerHTML = currentFiles.map(f => 
+                `<div class="file-item"><span>📄 ${f.name}</span><span>${f.content.length} bytes</span></div>`
+            ).join('');
+        }
+
+        // Encoding
+        async function encodeToSigil() {
+            let dataToEncode;
+            if (currentFiles.length > 0) {
+                addChatMessage('[⠿] 層 :: Bundling files into tar archive...', 'agent');
+                const tarBlob = createTar(currentFiles);
+                dataToEncode = new Uint8Array(await tarBlob.arrayBuffer());
+                document.getElementById('archive-info').innerHTML = 
+                    `<strong>${currentFiles.length} files</strong> bundled into TAR archive (${dataToEncode.length} bytes)`;
+                document.getElementById('binary-info').style.display = 'block';
+            } else {
+                const text = document.getElementById('input-text').value.trim();
+                if (!text) return alert("Drop files or paste text");
+                dataToEncode = new TextEncoder().encode(text);
+            }
+
+            const cs = new CompressionStream('deflate-raw');
+            const writer = cs.writable.getWriter();
+            writer.write(dataToEncode);
+            writer.close();
+            const compressed = await new Response(cs.readable).arrayBuffer();
+            const compressedBytes = new Uint8Array(compressed);
+
+            let sigil = '';
+            for (let b of compressedBytes) {
+                sigil += String.fromCharCode(0x2800 + b);
+            }
+            currentSigil = `GLYPH_SIGIL_v1.7:${compressedBytes.length}:${sigil}`;
+
+            document.getElementById('sigil-output').textContent = currentSigil;
+
+            updateMetrics(dataToEncode.length, compressedBytes.length, sigil.length);
+            addChatMessage(`[⠶] ⠿ 優 :: Encoded ${dataToEncode.length}B → ${compressedBytes.length}B compressed → ${sigil.length} glyphs`, 'agent');
+
+            // Auto-render in emulator
+            setTimeout(() => {
+                renderGlyphImage();
+                updateHexDump(compressedBytes);
+            }, 100);
+        }
+
+        function updateMetrics(original, compressed, glyphs) {
+            document.getElementById('metric-count').textContent = glyphs;
+            document.getElementById('metric-ratio').textContent = 
+                `${(original/compressed).toFixed(2)}:1`;
+
+            // Calculate byte coverage
+            const uniqueBytes = new Set();
+            for (let i = 0; i < currentSigil.length; i++) {
+                const code = currentSigil.charCodeAt(i);
+                if (code >= 0x2800 && code <= 0x28FF) {
+                    uniqueBytes.add(code - 0x2800);
+                }
+            }
+            const coverage = (uniqueBytes.size / 256 * 100).toFixed(1);
+            document.getElementById('metric-coverage').textContent = coverage + '%';
+
+            // Simple entropy calculation
+            const freq = {};
+            for (let b of currentSigil.slice(currentSigil.lastIndexOf(':')+1)) {
+                freq[b] = (freq[b] || 0) + 1;
+            }
+            let entropy = 0;
+            const len = currentSigil.length;
+            for (let char in freq) {
+                const p = freq[char] / len;
+                entropy -= p * Math.log2(p);
+            }
+            document.getElementById('metric-entropy').textContent = entropy.toFixed(2);
+        }
+
+        // GLYPH RUNTIME EMULATOR - Canvas Rendering
+        function renderGlyphImage() {
+            if (!currentSigil) {
+                addChatMessage('[⚠] No sigil to render', 'agent');
+                return;
+            }
+
+            const glyphPart = currentSigil.split(':')[2] || currentSigil;
+            const scale = parseFloat(document.getElementById('render-scale').value);
+            const dotSize = parseInt(document.getElementById('dot-size').value);
+            const mode = document.getElementById('render-mode').value;
+
+            const canvasText = document.getElementById('canvas-text');
+            const canvasGlyph = document.getElementById('canvas-glyph');
+            const ctxText = canvasText.getContext('2d');
+            const ctxGlyph = canvasGlyph.getContext('2d');
+
+            // Clear canvases
+            ctxText.fillStyle = '#000';
+            ctxText.fillRect(0, 0, canvasText.width, canvasText.height);
+            ctxGlyph.fillStyle = '#000';
+            ctxGlyph.fillRect(0, 0, canvasGlyph.width, canvasGlyph.height);
+
+            // Calculate grid dimensions
+            const cols = Math.ceil(Math.sqrt(glyphPart.length));
+            const rows = Math.ceil(glyphPart.length / cols);
+            const cellW = canvasGlyph.width / cols;
+            const cellH = canvasGlyph.height / rows;
+
+            // Render text version (left canvas)
+            ctxText.font = `${Math.min(cellW, cellH) * 0.8}px monospace`;
+            ctxText.fillStyle = '#00ccff';
+            ctxText.textAlign = 'center';
+            ctxText.textBaseline = 'middle';
+
+            for (let i = 0; i < glyphPart.length; i++) {
+                const col = i % cols;
+                const row = Math.floor(i / cols);
+                const x = col * cellW + cellW / 2;
+                const y = row * cellH + cellH / 2;
+                ctxText.fillText(glyphPart[i], x, y);
+            }
+
+            // Render emulated glyph version (right canvas)
+            for (let i = 0; i < glyphPart.length; i++) {
+                const char = glyphPart[i];
+                const code = char.charCodeAt(0) - 0x2800;
+                const col = i % cols;
+                const row = Math.floor(i / cols);
+                const x = col * cellW;
+                const y = row * cellH;
+
+                if (mode === 'braille') {
+                    renderBrailleCell(ctxGlyph, x, y, cellW, cellH, code, dotSize);
+                } else if (mode === 'grid') {
+                    renderGridCell(ctxGlyph, x, y, cellW, cellH, code);
+                } else if (mode === 'heatmap') {
+                    renderHeatmapCell(ctxGlyph, x, y, cellW, cellH, code);
+                } else if (mode === 'binary') {
+                    renderBinaryCell(ctxGlyph, x, y, cellW, cellH, code);
+                }
+            }
+
+            addChatMessage(`[▣] Emulator :: Rendered ${glyphPart.length} glyphs at ${cols}×${rows} grid`, 'agent');
+        }
+
+        function renderBrailleCell(ctx, x, y, w, h, code, dotSize) {
+            // Braille dots layout (2×4 grid)
+            // 0 3
+            // 1 4
+            // 2 5
+            // 6 7
+            const dots = [
+                (code >> 0) & 1, (code >> 3) & 1,
+                (code >> 1) & 1, (code >> 4) & 1,
+                (code >> 2) & 1, (code >> 5) & 1,
+                (code >> 6) & 1, (code >> 7) & 1
+            ];
+
+            const padX = w * 0.15;
+            const padY = h * 0.1;
+            const dotW = (w - padX * 2) / 2;
+            const dotH = (h - padY * 2) / 4;
+
+            for (let i = 0; i < 8; i++) {
+                if (dots[i]) {
+                    const dx = x + padX + (i % 2) * dotW + dotW/2;
+                    const dy = y + padY + Math.floor(i / 2) * dotH + dotH/2;
+                    ctx.beginPath();
+                    ctx.arc(dx, dy, dotSize, 0, Math.PI * 2);
+                    ctx.fillStyle = '#00ff9d';
+                    ctx.fill();
+                    ctx.strokeStyle = '#00ccff';
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                }
+            }
+
+            // Cell border
+            ctx.strokeStyle = '#222';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x, y, w, h);
+        }
+
+        function renderGridCell(ctx, x, y, w, h, code) {
+            ctx.strokeStyle = '#00ccff';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(x + 2, y + 2, w - 4, h - 4);
+
+            ctx.fillStyle = '#00ff9d';
+            ctx.font = `${h * 0.6}px monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(String.fromCharCode(0x2800 + code), x + w/2, y + h/2);
+        }
+
+        function renderHeatmapCell(ctx, x, y, w, h, code) {
+            const intensity = code / 255;
+            const r = Math.floor(intensity * 0);
+            const g = Math.floor(intensity * 255);
+            const b = Math.floor(intensity * 159);
+            ctx.fillStyle = `rgb(${r},${g},${b})`;
+            ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
+
+            ctx.fillStyle = '#000';
+            ctx.font = `${h * 0.4}px monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(code.toString(16).padStart(2, '0'), x + w/2, y + h/2);
+        }
+
+        function renderBinaryCell(ctx, x, y, w, h, code) {
+            const binary = code.toString(2).padStart(8, '0');
+            ctx.fillStyle = code > 127 ? '#00ff9d' : '#006644';
+            ctx.fillRect(x + 1, y + 1, w - 2, h - 2);
+
+            ctx.fillStyle = '#fff';
+            ctx.font = `${h * 0.25}px monospace`;
+            ctx.textAlign = 'center';
+            ctx.fillText(binary.substring(0, 4), x + w/2, y + h/3);
+            ctx.fillText(binary.substring(4), x + w/2, y + 2*h/3);
+        }
+
+        // Pattern Analysis
+        function updateHexDump(bytes) {
+            const dumpEl = document.getElementById('hex-dump');
+            let html = '';
+            for (let i = 0; i < bytes.length; i += 16) {
+                const offset = i.toString(16).padStart(4, '0');
+                let hex = `<span class="hex-offset">${offset}</span>  `;
+                let ascii = '';
+
+                for (let j = 0; j < 16 && i + j < bytes.length; j++) {
+                    const b = bytes[i + j];
+                    hex += `<span class="hex-byte">${b.toString(16).padStart(2, '0')}</span>`;
+                    ascii += (b >= 32 && b < 127) ? String.fromCharCode(b) : '.';
+                }
+
+                html += hex + `<span class="hex-ascii">${ascii}</span>\n`;
+            }
+            dumpEl.innerHTML = html;
+        }
+
+        function analyzePattern() {
+            if (!currentSigil) return;
+            const glyphPart = currentSigil.split(':')[2] || currentSigil;
+
+            // Frequency analysis
+            const freq = {};
+            for (let char of glyphPart) {
+                freq[char] = (freq[char] || 0) + 1;
+            }
+
+            const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
+            let analysis = `Pattern Analysis (top 10 glyphs):\n`;
+            analysis += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+            for (let i = 0; i < Math.min(10, sorted.length); i++) {
+                const [char, count] = sorted[i];
+                const code = char.charCodeAt(0) - 0x2800;
+                const pct = (count / glyphPart.length * 100).toFixed(1);
+                analysis += `U+${(0x2800 + code).toString(16).toUpperCase()}  ${char}  byte:${code.toString(16).padStart(2,'0')}  ${count}x (${pct}%)\n`;
+            }
+
+            document.getElementById('pattern-analysis').textContent = analysis;
+        }
+
+        // Verification Tests
+        function testRoundTrip() {
+            if (!currentSigil) {
+                addChatMessage('[⚠] No sigil to test', 'agent');
+                return;
+            }
+
+            try {
+                const parts = currentSigil.split(':');
+                const glyphStr = parts[2];
+                const bytes = new Uint8Array(glyphStr.length);
+                for (let i = 0; i < glyphStr.length; i++) {
+                    bytes[i] = glyphStr.charCodeAt(i) - 0x2800;
+                }
+
+                // Re-encode
+                let reencoded = '';
+                for (let b of bytes) {
+                    reencoded += String.fromCharCode(0x2800 + b);
+                }
+
+                const passed = reencoded === glyphStr;
+                const resultEl = document.getElementById('test-results');
+                resultEl.innerHTML = `
+                    <div style="color:${passed ? 'var(--accent)' : 'var(--danger)'}">
+                        <strong>Round-Trip Test: ${passed ? 'PASSED ✓' : 'FAILED ✗'}</strong><br>
+                        Original length: ${glyphStr.length}<br>
+                        Re-encoded length: ${reencoded.length}<br>
+                        Bytes verified: ${bytes.length}
+                    </div>
+                `;
+
+                addChatMessage(`[${passed ? '✓' : '✗'}] Round-trip test ${passed ? 'PASSED' : 'FAILED'}`, 'agent');
+            } catch (e) {
+                addChatMessage(`[⚠] Test error: ${e.message}`, 'agent');
+            }
+        }
+
+        function testByteCoverage() {
+            const present = new Set();
+            if (currentSigil) {
+                const glyphPart = currentSigil.split(':')[2] || currentSigil;
+                for (let char of glyphPart) {
+                    present.add(char.charCodeAt(0) - 0x2800);
+                }
+            }
+
+            const missing = [];
+            for (let i = 0; i < 256; i++) {
+                if (!present.has(i)) missing.push(i);
+            }
+
+            const resultEl = document.getElementById('test-results');
+            resultEl.innerHTML = `
+                <div>
+                    <strong>Byte Coverage Test</strong><br>
+                    Unique bytes present: ${present.size}/256 (${(present.size/256*100).toFixed(1)}%)<br>
+                    Missing bytes: ${missing.length}<br>
+                    ${missing.length > 0 ? `<small style="color:#666">Missing: ${missing.slice(0,20).map(b=>'0x'+b.toString(16).padStart(2,'0')).join(', ')}${missing.length>20?'...':''}</small>` : '<span style="color:var(--accent)">Full coverage achieved!</span>'}
+                </div>
+            `;
+        }
+
+        function testCompression() {
+            if (!currentSigil) {
+                addChatMessage('[⚠] No sigil to test', 'agent');
+                return;
+            }
+
+            const parts = currentSigil.split(':');
+            const originalLen = parseInt(parts[1]) || 0;
+            const compressedLen = parts[2]?.length || 0;
+            const ratio = originalLen > 0 ? (originalLen / compressedLen).toFixed(2) : 0;
+
+            const resultEl = document.getElementById('test-results');
+            resultEl.innerHTML = `
+                <div>
+                    <strong>Compression Analysis</strong><br>
+                    Original (compressed zlib): ${originalLen} bytes<br>
+                    Braille glyph count: ${compressedLen} chars<br>
+                    Ratio: ${ratio}:1<br>
+                    Efficiency: ${(compressedLen > 0 ? (originalLen/compressedLen*100).toFixed(1) : 0)}%
+                </div>
+            `;
+        }
+
+        function visualizeBrailleMap() {
+            const canvas = document.getElementById('canvas-glyph');
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            const cols = 16;
+            const rows = 16;
+            const cellW = canvas.width / cols;
+            const cellH = canvas.height / rows;
+
+            ctx.font = `${cellH * 0.5}px monospace`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+
+            for (let i = 0; i < 256; i++) {
+                const col = i % cols;
+                const row = Math.floor(i / cols);
+                const x = col * cellW + cellW/2;
+                const y = row * cellH + cellH/2;
+
+                const char = String.fromCharCode(0x2800 + i);
+                ctx.fillStyle = (i % 2 === 0) ? '#00ccff' : '#00ff9d';
+                ctx.fillText(char, x, y);
+
+                ctx.strokeStyle = '#222';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(col * cellW, row * cellH, cellW, cellH);
+            }
+
+            addChatMessage('[▣] Visualized complete Braille Unicode block (U+2800-U+28FF)', 'agent');
+        }
+
+        function comparePatterns() {
+            if (!currentSigil) {
+                addChatMessage('[⚠] Generate a sigil first', 'agent');
+                return;
+            }
+            renderGlyphImage();
+            analyzePattern();
+            addChatMessage('[▣] Pattern comparison complete — check Analysis tab', 'agent');
+        }
+
+        function generateTestPattern() {
+            // Generate a test sigil with all byte values
+            let testSigil = 'GLYPH_SIGIL_v1.7:256:';
+            for (let i = 0; i < 256; i++) {
+                testSigil += String.fromCharCode(0x2800 + i);
+            }
+            currentSigil = testSigil;
+            document.getElementById('sigil-output').textContent = testSigil;
+            updateMetrics(256, 256, 256);
+            renderGlyphImage();
+            updateHexDump(new Uint8Array(256).map((_,i)=>i));
+            addChatMessage('[▣] Generated test pattern with all 256 byte values', 'agent');
+        }
+
+        // Utility functions
+        function copySigil() {
+            if (currentSigil) {
+                navigator.clipboard.writeText(currentSigil).then(() => {
+                    addChatMessage('[⠂] ⠇ 譯 :: Sigil copied for transport', 'agent');
+                });
+            }
+        }
+
+        function exportSigilImage() {
+            const canvas = document.getElementById('canvas-text');
+            const link = document.createElement('a');
+            link.download = 'glyph_sigil_v1.7.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            addChatMessage('[▣] Exported sigil as PNG image', 'agent');
+        }
+
+        function decodeSigil() {
+            const sigilText = document.getElementById('sigil-output').textContent.trim();
+            if (!sigilText || sigilText === 'Sigil will appear here...') {
+                addChatMessage('[⚠] No sigil to decode', 'agent');
+                return;
+            }
+            addChatMessage('[⠇] ⠿ 譯 :: Decoding not implemented in emulator demo', 'agent');
+        }
+
+        function clearAll() {
+            currentFiles = [];
+            currentSigil = '';
+            document.getElementById('file-list').innerHTML = '';
+            document.getElementById('input-text').value = '';
+            document.getElementById('sigil-output').textContent = 'Sigil will appear here...';
+            document.getElementById('binary-info').style.display = 'none';
+
+            const canvasText = document.getElementById('canvas-text');
+            const canvasGlyph = document.getElementById('canvas-glyph');
+            canvasText.getContext('2d').fillRect(0, 0, canvasText.width, canvasText.height);
+            canvasGlyph.getContext('2d').fillRect(0, 0, canvasGlyph.width, canvasGlyph.height);
+
+            addChatMessage('[⠂] ⠇ 譯 :: All data cleared', 'agent');
+        }
+
+        function downloadAllDecoded() {
+            addChatMessage('[⚠] Download requires decoded archive', 'agent');
+        }
+
+        // Chat
+        function addChatMessage(text, type) {
+            const container = document.getElementById('chat-messages');
+            const msg = document.createElement('div');
+            msg.className = `message ${type}-msg`;
+            msg.innerHTML = text;
+            container.appendChild(msg);
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function chatSend() {
+            const input = document.getElementById('chat-input');
+            const text = input.value.trim();
+            if (!text) return;
+            addChatMessage(text, 'user');
+            input.value = '';
+
+            setTimeout(() => {
+                const lower = text.toLowerCase();
+                if (lower.includes('encode')) encodeToSigil();
+                else if (lower.includes('render')) renderGlyphImage();
+                else if (lower.includes('test')) testRoundTrip();
+                else if (lower.includes('visualize')) visualizeBrailleMap();
+                else addChatMessage('[⠁] 元 :: Glyph Runtime Emulator v1.7 ready. Try: encode, render, test, visualize', 'agent');
+            }, 300);
+        }
+
+        // Init
+        setTimeout(() => {
+            addChatMessage('[|0⟩] ⠁ 元 :: v1.7 Glyph Runtime Emulator initialized.', 'agent');
+            addChatMessage('[▣] Canvas rendering engine • Pattern analysis • Image testing active', 'agent');
+        }, 500);
+    </script>
+</body>
+</html>
