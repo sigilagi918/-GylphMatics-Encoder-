@@ -1,0 +1,1851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Bench — A Courtroom Horror</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;0,700;1,400&family=Special+Elite&family=JetBrains+Mono:wght@400;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #080808;
+            --fg: #c8c0b0;
+            --dim: #5a5048;
+            --accent: #8b0000;
+            --accent-glow: rgba(139, 0, 0, 0.25);
+            --panel: #12100e;
+            --border: #252220;
+            --gold: #b8a030;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--fg);
+            font-family: 'Crimson Text', Georgia, serif;
+            line-height: 1.9;
+            font-size: 17px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Film grain */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.5;
+        }
+
+        .vignette {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            box-shadow: inset 0 0 180px rgba(0,0,0,0.92);
+            pointer-events: none;
+            z-index: 999;
+        }
+
+        /* ===== VISUAL STAGE ===== */
+        .stage {
+            position: relative;
+            width: 100%;
+            height: 45vh;
+            min-height: 300px;
+            max-height: 500px;
+            overflow: hidden;
+            border-bottom: 1px solid var(--border);
+            background: var(--panel);
+        }
+
+        .stage-scene {
+            position: absolute;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            transition: opacity 1.5s ease;
+        }
+
+        .stage-scene.active {
+            display: flex;
+            animation: stageFadeIn 2s ease-out;
+        }
+
+        @keyframes stageFadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Dynamic backgrounds */
+        .bg-courtroom {
+            background: linear-gradient(180deg, #1a1510 0%, #0e0c08 60%, #050403 100%);
+        }
+        .bg-courtroom::before {
+            content: "";
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 40%;
+            background: linear-gradient(180deg, transparent, rgba(60,40,20,0.3));
+        }
+
+        .bg-hallway {
+            background: linear-gradient(90deg, #0a0806 0%, #151210 50%, #0a0806 100%);
+        }
+        .bg-hallway::before {
+            content: "";
+            position: absolute;
+            top: 20%; left: 50%;
+            width: 2px; height: 60%;
+            background: linear-gradient(180deg, transparent, rgba(139,0,0,0.3), transparent);
+            transform: translateX(-50%);
+        }
+
+        .bg-office {
+            background: linear-gradient(135deg, #12100e 0%, #1a1814 50%, #0e0c08 100%);
+        }
+
+        .bg-night {
+            background: linear-gradient(180deg, #050508 0%, #0a0a10 50%, #080608 100%);
+        }
+        .bg-night::before {
+            content: "";
+            position: absolute;
+            top: 10%; right: 15%;
+            width: 60px; height: 60px;
+            background: radial-gradient(circle, rgba(200,200,220,0.08) 0%, transparent 70%);
+            border-radius: 50%;
+            animation: moonPulse 8s infinite;
+        }
+        @keyframes moonPulse {
+            0%, 100% { opacity: 0.5; transform: scale(1); }
+            50% { opacity: 0.8; transform: scale(1.1); }
+        }
+
+        .bg-street {
+            background: linear-gradient(180deg, #08080a 0%, #0e0e12 40%, #060608 100%);
+        }
+        .bg-street::before {
+            content: "";
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 30%;
+            background: repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(40,40,50,0.2) 40px, rgba(40,40,50,0.2) 42px);
+        }
+
+        .bg-void {
+            background: radial-gradient(ellipse at center, #15100e 0%, #080604 40%, #020201 100%);
+        }
+
+        .bg-home {
+            background: linear-gradient(180deg, #0e0c0a 0%, #12100c 50%, #080604 100%);
+        }
+
+        .bg-creek {
+            background: linear-gradient(135deg, #100e0c 0%, #1a1612 50%, #0c0a08 100%);
+        }
+
+        .bg-chambers {
+            background: linear-gradient(180deg, #141210 0%, #0a0806 100%);
+        }
+
+        .bg-appeal {
+            background: linear-gradient(180deg, #0c0c14 0%, #080810 50%, #040408 100%);
+        }
+
+        .bg-classroom {
+            background: linear-gradient(135deg, #121210 0%, #1a1a14 50%, #0e0e0a 100%);
+        }
+
+        .bg-woods {
+            background: linear-gradient(180deg, #060806 0%, #0a1008 50%, #040604 100%);
+        }
+        .bg-woods::before {
+            content: "";
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            height: 50%;
+            background: linear-gradient(180deg, transparent, rgba(20,30,20,0.4));
+        }
+
+        .bg-funeral {
+            background: linear-gradient(180deg, #0a0a0a 0%, #101010 50%, #060606 100%);
+        }
+
+        .bg-podium {
+            background: linear-gradient(180deg, #141210 0%, #0e0c08 100%);
+        }
+
+        /* Scene elements */
+        .scene-element {
+            position: absolute;
+            opacity: 0.6;
+        }
+
+        .gavel {
+            width: 80px; height: 20px;
+            background: linear-gradient(90deg, #3a2820, #5a4030, #3a2820);
+            border-radius: 4px;
+            top: 55%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .gavel::after {
+            content: "";
+            position: absolute;
+            right: -8px; top: -30px;
+            width: 16px; height: 50px;
+            background: linear-gradient(180deg, #4a3428, #2a1e18);
+            border-radius: 3px;
+        }
+
+        .bench-silhouette {
+            width: 200px; height: 8px;
+            background: linear-gradient(90deg, transparent, #2a2018, transparent);
+            border-radius: 4px;
+            bottom: 35%;
+        }
+
+        .window-frame {
+            width: 120px; height: 160px;
+            border: 2px solid rgba(60,50,40,0.3);
+            top: 15%; right: 10%;
+        }
+        .window-frame::before {
+            content: "";
+            position: absolute;
+            inset: 4px;
+            background: linear-gradient(180deg, rgba(40,40,60,0.3), rgba(20,20,30,0.1));
+        }
+
+        .filing-cabinet {
+            width: 60px; height: 100px;
+            background: linear-gradient(90deg, #1a1814, #2a2820, #1a1814);
+            bottom: 20%; left: 15%;
+            border-radius: 2px;
+        }
+        .filing-cabinet::before {
+            content: "";
+            position: absolute;
+            top: 20px; left: 10px; right: 10px;
+            height: 2px;
+            background: rgba(100,90,80,0.3);
+            box-shadow: 0 25px 0 rgba(100,90,80,0.3), 0 50px 0 rgba(100,90,80,0.3);
+        }
+
+        .doorway {
+            width: 80px; height: 140px;
+            border: 2px solid rgba(60,50,40,0.2);
+            border-bottom: none;
+            bottom: 20%;
+            background: linear-gradient(180deg, rgba(10,8,6,0.8), transparent);
+        }
+
+        .figure {
+            width: 30px; height: 70px;
+            background: linear-gradient(180deg, rgba(40,40,40,0.6), rgba(20,20,20,0.3));
+            border-radius: 15px 15px 0 0;
+            bottom: 20%;
+            animation: figureBreath 6s infinite;
+        }
+        @keyframes figureBreath {
+            0%, 100% { transform: scaleY(1); opacity: 0.5; }
+            50% { transform: scaleY(1.02); opacity: 0.7; }
+        }
+
+        .papers {
+            width: 100px; height: 4px;
+            background: rgba(80,70,60,0.3);
+            border-radius: 2px;
+            box-shadow: 0 8px 0 rgba(80,70,60,0.2), 0 16px 0 rgba(80,70,60,0.15);
+        }
+
+        .coffin {
+            width: 140px; height: 30px;
+            background: linear-gradient(180deg, #1a1612, #0e0c08);
+            border-radius: 70px 70px 0 0;
+            bottom: 25%;
+            border: 1px solid rgba(60,50,40,0.2);
+        }
+
+        .podium-stand {
+            width: 60px; height: 80px;
+            background: linear-gradient(90deg, #1a1814, #2a2820);
+            bottom: 25%;
+            border-radius: 4px 4px 0 0;
+        }
+
+        .tree-silhouette {
+            width: 4px; height: 100px;
+            background: linear-gradient(180deg, rgba(30,40,30,0.5), transparent);
+            bottom: 20%;
+        }
+        .tree-silhouette::before {
+            content: "";
+            position: absolute;
+            top: -20px; left: -20px;
+            width: 44px; height: 44px;
+            background: radial-gradient(circle, rgba(30,40,30,0.3), transparent);
+            border-radius: 50%;
+        }
+
+        .stage-label {
+            position: absolute;
+            bottom: 12px; left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Special Elite', monospace;
+            font-size: 0.65rem;
+            color: var(--dim);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            opacity: 0.5;
+            z-index: 10;
+        }
+
+        /* ===== CONTENT AREA ===== */
+        .content-area {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 30px 25px 100px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Audio Controls */
+        .audio-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 18px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            margin-bottom: 25px;
+            position: sticky;
+            top: 10px;
+            z-index: 50;
+            backdrop-filter: blur(8px);
+        }
+
+        .audio-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            width: 42px; height: 42px;
+            border-radius: 50%;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .audio-btn:hover {
+            box-shadow: 0 0 20px var(--accent-glow);
+            transform: scale(1.05);
+        }
+
+        .audio-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .audio-status {
+            flex: 1;
+            font-family: 'Special Elite', monospace;
+            font-size: 0.8rem;
+            color: var(--dim);
+        }
+
+        .audio-status.speaking {
+            color: var(--accent);
+            animation: statusPulse 1.5s infinite;
+        }
+
+        @keyframes statusPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .speed-control {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .speed-control label {
+            font-size: 0.7rem;
+            color: var(--dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .speed-control select {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            color: var(--fg);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        /* Header */
+        .game-header {
+            text-align: center;
+            padding: 20px 0 30px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-family: 'Special Elite', monospace;
+            font-size: 2.2rem;
+            color: #d4c4b0;
+            letter-spacing: 6px;
+            text-transform: uppercase;
+            margin-bottom: 8px;
+            text-shadow: 0 0 20px rgba(139,0,0,0.2);
+        }
+
+        .subtitle {
+            font-style: italic;
+            color: var(--dim);
+            font-size: 1rem;
+            letter-spacing: 2px;
+        }
+
+        .meta-line {
+            font-family: 'Special Elite', monospace;
+            font-size: 0.7rem;
+            color: #3a3530;
+            margin-top: 12px;
+            letter-spacing: 1px;
+        }
+
+        /* Stats */
+        .stats-bar {
+            display: flex;
+            justify-content: space-around;
+            gap: 12px;
+            margin: 25px 0 35px;
+            padding: 16px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            position: relative;
+        }
+
+        .stats-bar::before {
+            content: "";
+            position: absolute;
+            top: -1px; left: 10%; right: 10%;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent), transparent);
+            opacity: 0.4;
+        }
+
+        .stat {
+            text-align: center;
+            flex: 1;
+        }
+
+        .stat-value {
+            font-family: 'Special Elite', monospace;
+            font-size: 1.6rem;
+            color: var(--accent);
+            display: block;
+            transition: all 0.5s ease;
+            text-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .stat-label {
+            font-size: 0.65rem;
+            color: var(--dim);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 4px;
+        }
+
+        /* Scene */
+        .scene {
+            display: none;
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        .scene.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .scene-header-text {
+            font-family: 'Special Elite', monospace;
+            font-size: 0.75rem;
+            color: var(--dim);
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            margin-bottom: 22px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .narrative {
+            margin-bottom: 28px;
+        }
+
+        .narrative p {
+            margin-bottom: 18px;
+            text-align: justify;
+            text-indent: 2em;
+            transition: opacity 0.3s;
+        }
+
+        .narrative p:first-child {
+            text-indent: 0;
+        }
+
+        .narrative p:first-child::first-letter {
+            font-size: 3rem;
+            float: left;
+            line-height: 0.8;
+            padding-right: 10px;
+            color: var(--accent);
+            font-family: 'Special Elite', monospace;
+        }
+
+        .narrative p.speaking {
+            opacity: 1;
+            text-shadow: 0 0 8px rgba(200,180,160,0.1);
+        }
+
+        .narrative p.spoken {
+            opacity: 0.5;
+        }
+
+        /* Dossier */
+        .dossier {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-left: 3px solid var(--accent);
+            padding: 20px 22px;
+            margin: 22px 0;
+            font-family: 'Special Elite', monospace;
+            font-size: 0.88rem;
+            color: #9a8e7e;
+            position: relative;
+        }
+
+        .dossier::before {
+            content: "CASE FILE";
+            position: absolute;
+            top: -10px;
+            left: 15px;
+            background: var(--bg);
+            padding: 0 10px;
+            font-size: 0.6rem;
+            color: var(--accent);
+            letter-spacing: 3px;
+        }
+
+        .dossier .field {
+            margin-bottom: 7px;
+        }
+
+        .dossier .field-label {
+            color: var(--dim);
+            text-transform: uppercase;
+            font-size: 0.72rem;
+            letter-spacing: 1px;
+        }
+
+        .dossier .field-value {
+            color: #b8a898;
+        }
+
+        .dossier .redacted {
+            background: #1a1510;
+            color: transparent;
+            user-select: none;
+            padding: 0 4px;
+            cursor: not-allowed;
+        }
+
+        /* Choices */
+        .choices {
+            margin: 30px 0;
+        }
+
+        .choice {
+            display: block;
+            width: 100%;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--fg);
+            padding: 16px 20px;
+            margin-bottom: 12px;
+            text-align: left;
+            font-family: 'Crimson Text', Georgia, serif;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            border-radius: 4px;
+        }
+
+        .choice::before {
+            content: "›";
+            position: absolute;
+            left: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--dim);
+            font-size: 1.1rem;
+            transition: all 0.3s ease;
+        }
+
+        .choice:hover {
+            border-color: var(--accent);
+            background: rgba(139, 0, 0, 0.05);
+            padding-left: 30px;
+        }
+
+        .choice:hover::before {
+            color: var(--accent);
+            left: 12px;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 40px 0;
+            color: var(--border);
+            font-size: 1.2rem;
+            letter-spacing: 8px;
+            font-family: 'Special Elite', monospace;
+        }
+
+        .ending-title {
+            font-family: 'Special Elite', monospace;
+            font-size: 1.4rem;
+            color: var(--accent);
+            text-align: center;
+            margin: 35px 0 18px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+        }
+
+        .ending-text {
+            font-style: italic;
+            text-align: center;
+            color: var(--dim);
+            margin-bottom: 25px;
+        }
+
+        .hidden { display: none !important; }
+
+        #start-screen {
+            text-align: center;
+            padding: 50px 20px;
+        }
+
+        #start-screen .flavor {
+            font-style: italic;
+            color: var(--dim);
+            margin: 25px 0 35px;
+            font-size: 1.05rem;
+            line-height: 2;
+        }
+
+        .start-btn {
+            display: inline-block;
+            background: transparent;
+            border: 1px solid var(--accent);
+            color: var(--accent);
+            padding: 14px 45px;
+            font-family: 'Special Elite', monospace;
+            font-size: 0.9rem;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            border-radius: 4px;
+        }
+
+        .start-btn:hover {
+            background: var(--accent);
+            color: var(--bg);
+            box-shadow: 0 0 30px var(--accent-glow);
+        }
+
+        .content-warning {
+            border: 1px solid var(--border);
+            padding: 18px;
+            margin: 25px 0;
+            font-size: 0.82rem;
+            color: var(--dim);
+            text-align: center;
+            line-height: 1.8;
+            border-radius: 4px;
+        }
+
+        .content-warning strong {
+            color: #8a7e6e;
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 1.4rem; letter-spacing: 3px; }
+            .stage { height: 35vh; min-height: 220px; }
+            .content-area { padding: 20px 15px 80px; }
+            .stats-bar { flex-wrap: wrap; gap: 15px; }
+            .stat { min-width: 45%; }
+            .audio-bar { flex-wrap: wrap; }
+        }
+    </style>
+<base target="_blank">
+</head>
+<body>
+    <div class="vignette"></div>
+
+    <!-- VISUAL STAGE -->
+    <div class="stage" id="stage">
+        <!-- Start -->
+        <div class="stage-scene bg-courtroom active" data-scene="start">
+            <div class="bench-silhouette"></div>
+            <div class="gavel" style="top:48%;"></div>
+            <div class="stage-label">Oklahoma District Court</div>
+        </div>
+
+        <!-- Courtroom scenes -->
+        <div class="stage-scene bg-courtroom" data-scene="courtroom">
+            <div class="bench-silhouette"></div>
+            <div class="gavel"></div>
+            <div class="papers" style="bottom:30%; right:20%;"></div>
+            <div class="stage-label">The Bench</div>
+        </div>
+
+        <div class="stage-scene bg-courtroom" data-scene="courtroom-gallery">
+            <div class="figure" style="left:30%;"></div>
+            <div class="figure" style="left:50%; opacity:0.3;"></div>
+            <div class="figure" style="left:70%; opacity:0.4;"></div>
+            <div class="stage-label">The Gallery</div>
+        </div>
+
+        <!-- Hallway -->
+        <div class="stage-scene bg-hallway" data-scene="hallway">
+            <div class="doorway" style="left:30%;"></div>
+            <div class="doorway" style="left:60%; opacity:0.5;"></div>
+            <div class="stage-label">Courthouse Hallway</div>
+        </div>
+
+        <!-- Office/Chambers -->
+        <div class="stage-scene bg-chambers" data-scene="chambers">
+            <div class="filing-cabinet"></div>
+            <div class="window-frame"></div>
+            <div class="papers" style="bottom:25%; left:40%;"></div>
+            <div class="stage-label">Judicial Chambers</div>
+        </div>
+
+        <div class="stage-scene bg-office" data-scene="office">
+            <div class="filing-cabinet" style="left:70%;"></div>
+            <div class="papers" style="bottom:30%; left:45%;"></div>
+            <div class="stage-label">District Attorney's Office</div>
+        </div>
+
+        <!-- Night/Home -->
+        <div class="stage-scene bg-night" data-scene="night">
+            <div class="window-frame" style="left:15%; top:20%;"></div>
+            <div class="stage-label">3:17 AM</div>
+        </div>
+
+        <div class="stage-scene bg-home" data-scene="home">
+            <div class="window-frame" style="top:15%; right:10%;"></div>
+            <div class="stage-label">Residential District</div>
+        </div>
+
+        <!-- Street -->
+        <div class="stage-scene bg-street" data-scene="street">
+            <div class="figure" style="left:40%; opacity:0.4;"></div>
+            <div class="stage-label">City Streets</div>
+        </div>
+
+        <!-- Creek County -->
+        <div class="stage-scene bg-creek" data-scene="creek">
+            <div class="filing-cabinet" style="left:60%;"></div>
+            <div class="papers" style="bottom:35%; left:30%;"></div>
+            <div class="stage-label">Creek County Courthouse</div>
+        </div>
+
+        <!-- Void/Dark -->
+        <div class="stage-scene bg-void" data-scene="void">
+            <div class="stage-label">The Silence</div>
+        </div>
+
+        <!-- Woods -->
+        <div class="stage-scene bg-woods" data-scene="woods">
+            <div class="tree-silhouette" style="left:20%;"></div>
+            <div class="tree-silhouette" style="left:50%; height:80px;"></div>
+            <div class="tree-silhouette" style="left:80%; height:60px;"></div>
+            <div class="stage-label">The Ozarks</div>
+        </div>
+
+        <!-- Appeal/High Court -->
+        <div class="stage-scene bg-appeal" data-scene="appeal">
+            <div class="bench-silhouette" style="width:280px;"></div>
+            <div class="gavel" style="top:50%;"></div>
+            <div class="stage-label">Court of Appeals</div>
+        </div>
+
+        <!-- Classroom/Community -->
+        <div class="stage-scene bg-classroom" data-scene="classroom">
+            <div class="figure" style="left:25%; opacity:0.3;"></div>
+            <div class="figure" style="left:45%; opacity:0.35;"></div>
+            <div class="figure" style="left:65%; opacity:0.3;"></div>
+            <div class="stage-label">Community Center</div>
+        </div>
+
+        <!-- Funeral -->
+        <div class="stage-scene bg-funeral" data-scene="funeral">
+            <div class="coffin"></div>
+            <div class="figure" style="left:30%; opacity:0.3; height:50px;"></div>
+            <div class="figure" style="left:60%; opacity:0.25; height:50px;"></div>
+            <div class="stage-label">Memorial Service</div>
+        </div>
+
+        <!-- Podium/Speech -->
+        <div class="stage-scene bg-podium" data-scene="podium">
+            <div class="podium-stand"></div>
+            <div class="stage-label">The Bar Association</div>
+        </div>
+    </div>
+
+    <div class="content-area">
+        <!-- AUDIO BAR -->
+        <div class="audio-bar" id="audio-bar" style="display:none;">
+            <button class="audio-btn" id="play-btn" onclick="toggleSpeech()" title="Play/Pause Narration">▶</button>
+            <button class="audio-btn" onclick="stopSpeech()" title="Stop" style="background:var(--border); font-size:0.8rem;">⏹</button>
+            <div class="audio-status" id="audio-status">Click play to hear narration</div>
+            <div class="speed-control">
+                <label>Speed</label>
+                <select id="speech-rate" onchange="updateSpeechRate()">
+                    <option value="0.7">0.7x</option>
+                    <option value="0.85">0.85x</option>
+                    <option value="1" selected>1x</option>
+                    <option value="1.15">1.15x</option>
+                    <option value="1.3">1.3x</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="game-header">
+            <h1>The Bench</h1>
+            <p class="subtitle">A Courtroom Horror</p>
+            <p class="meta-line">Oklahoma District Court — Title 43, Section 3</p>
+        </div>
+
+        <!-- START SCREEN -->
+        <div id="start-screen" class="scene active">
+            <div class="content-warning">
+                <strong>Content Notice:</strong> This narrative explores the psychological weight of judicial discretion in cases involving minors. It contains no graphic depictions of violence, but addresses systemic moral horror through atmosphere and implication. Audio narration is available. Player discretion is advised.
+            </div>
+            <p class="flavor">
+                You are a District Court Judge in Oklahoma.<br>
+                The statute before you contains no floor.<br>
+                The room is cold. The gavel is heavy.<br>
+                And the petitions keep arriving.
+            </p>
+            <button class="start-btn" onclick="startGame()">Enter the Chamber</button>
+        </div>
+
+        <!-- STATS -->
+        <div id="stats-panel" class="hidden">
+            <div class="stats-bar">
+                <div class="stat">
+                    <span class="stat-value" id="sanity">100</span>
+                    <span class="stat-label">Composure</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="authority">50</span>
+                    <span class="stat-label">Authority</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="guilt">0</span>
+                    <span class="stat-label">Weight</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value" id="cases">0</span>
+                    <span class="stat-label">Cases Heard</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== LEVEL 1: THE FIRST PETITION ========== -->
+        <div id="scene-1" class="scene" data-stage="courtroom" data-narrate="true">
+            <div class="scene-header-text">Case No. 2026-CV-0041 — Morning Session</div>
+            <div class="narrative">
+                <p>The courtroom smells of old wood and floor wax. You have been on this bench for eleven years. You have signed orders that ended marriages, approved adoptions, committed the mentally ill. You have learned to sleep at night by telling yourself the law is a machine, and you are merely the operator.</p>
+                <p>But this morning, the machine has brought you something different.</p>
+                <p>The petition lies on your desk in a manila folder, thin as a leaf. You have seen hundreds like it. The difference is in what the statute does not say. Title 43, Section 3: "A district court may authorize marriage for individuals under the statutory minimum upon petition." No minimum age is specified. No floor. The legislature left a hole in the law, and into that hole things fall.</p>
+            </div>
+
+            <div class="dossier">
+                <div class="field"><span class="field-label">Petitioner:</span> <span class="field-value">Female, age 14</span></div>
+                <div class="field"><span class="field-label">Intended Spouse:</span> <span class="field-value">Male, age 27</span></div>
+                <div class="field"><span class="field-label">Grounds:</span> <span class="field-value">Pregnancy — 4 months</span></div>
+                <div class="field"><span class="field-label">Parental Consent:</span> <span class="field-value">Signed and notarized</span></div>
+                <div class="field"><span class="field-label">Counsel for Minor:</span> <span class="field-value redacted">NONE ASSIGNED</span></div>
+                <div class="field"><span class="field-label">Statutory Floor:</span> <span class="field-value" style="color:var(--accent);">NONE SPECIFIED</span></div>
+            </div>
+
+            <div class="narrative">
+                <p>You look up from the file. The petitioner sits in the gallery, small in her church dress, hands folded in her lap. The intended spouse stands beside her mother, a man with the calm patience of someone who has already won. The mother will not meet your eyes.</p>
+                <p>The statute permits this. The statute invites this. The question is whether you will accept the invitation.</p>
+            </div>
+
+            <div class="choices">
+                <button class="choice" onclick="goTo('scene-2a')">Grant the waiver. The law is clear. The legislature chose not to set a floor; you will not invent one from the bench.</button>
+                <button class="choice" onclick="goTo('scene-2b')">Deny the waiver. Cite the age disparity and the absence of independent counsel for the minor. Let them appeal if they disagree.</button>
+                <button class="choice" onclick="goTo('scene-2c')">Delay the ruling. Order a psychological evaluation and appoint a guardian ad litem. Buy time, even if the statute does not require it.</button>
+            </div>
+        </div>
+
+        <!-- ========== LEVEL 2A: GRANTED ========== -->
+        <div id="scene-2a" class="scene" data-stage="courtroom" data-narrate="true">
+            <div class="scene-header-text">Case No. 2026-CV-0041 — Ruling Delivered</div>
+            <div class="narrative">
+                <p>You sign the order with a fountain pen that belonged to your father. The nib scratches across the paper like something trying to get out. "The Court, having reviewed the petition and finding no statutory prohibition, hereby grants the waiver..."</p>
+                <p>The intended spouse smiles. It is not a cruel smile. That is what makes it worse. It is the smile of a man who has simply walked through an open door.</p>
+                <p>That night, you do not sleep. You lie in the dark and listen to the house settle. Somewhere in the walls, a pipe ticks with the rhythm of a clock. You count the ticks. At 3:17 AM, you realize you are counting in time with the girl's age. Fourteen. Fourteen. Fourteen.</p>
+                <p>The next morning, the clerk brings three more petitions.</p>
+            </div>
+
+            <div class="dossier">
+                <div class="field"><span class="field-label">New Petition 1:</span> <span class="field-value">Age 15, spouse age 32, pregnancy cited</span></div>
+                <div class="field"><span class="field-label">New Petition 2:</span> <span class="field-value">Age 13, spouse age 24, parental consent only</span></div>
+                <div class="field"><span class="field-label">New Petition 3:</span> <span class="field-value">Age 16, spouse age 19, both parties request waiver</span></div>
+            </div>
+
+            <div class="choices">
+                <button class="choice" onclick="goTo('scene-3a')">Process all three waivers efficiently. You have established precedent. The docket is backing up.</button>
+                <button class="choice" onclick="goTo('scene-3b')">Grant the 16-year-old's waiver but flag the 13- and 15-year-old cases for extended review. Try to find some limit.</button>
+                <button class="choice" onclick="goTo('scene-3c')">Close the folder and call your old law school professor. Ask if a judge has any duty beyond the black letter of the statute.</button>
+            </div>
+        </div>
+
+        <!-- ========== LEVEL 2B: DENIED ========== -->
+        <div id="scene-2b" class="scene" data-stage="courtroom-gallery" data-narrate="true">
+            <div class="scene-header-text">Case No. 2026-CV-0041 — Ruling Delivered</div>
+            <div class="narrative">
+                <p>"The Court finds that the petition fails to demonstrate that the proposed marriage serves the best interest of the minor. The age disparity between the parties, coupled with the absence of independent legal counsel for the petitioner, raises concerns that the legislature, in its silence, did not intend to authorize. The waiver is denied."</p>
+                <p>The intended spouse's face does not change. He simply nods, as if you have told him it might rain tomorrow. The mother gathers her daughter and leads her out. The girl looks back at you once. You cannot read her expression. You are not sure you want to.</p>
+                <p>Three days later, your bailiff mentions that the family has filed in the next county over. A different judge. A friendlier bench. The waiver was granted in fourteen minutes.</p>
+                <p>You tell yourself you did what you could. The words taste like ash.</p>
+            </div>
+
+            <div class="narrative">
+                <p>The following week, a manila envelope arrives at your chambers. No return address. Inside: a photocopy of a marriage certificate from Creek County. The minor's name. The same intended spouse. And a handwritten note in block letters:</p>
+                <p style="text-align:center; font-family:'Special Elite',monospace; color:var(--accent); margin:20px 0;">SHE SAID THANK YOU FOR TRYING</p>
+                <p>You burn the note in your desk lamp. The flame is the color of dried blood.</p>
+            </div>
+
+            <div class="choices">
+                <button class="choice" onclick="goTo('scene-3d')">Drive to Creek County. Confront the judge who granted the waiver. Demand to know what standard he applied.</button>
+                <button class="choice" onclick="goTo('scene-3e')">Draft a memorandum to the state judicial council arguing for a uniform minimum age in waiver proceedings. Try to change the system from within.</button>
+                <button class="choice" onclick="goTo('scene-3f')">Say nothing. Sign the next petition that crosses your desk. If the law is a river, you are tired of swimming against it.</button>
+            </div>
+        </div>
+
+        <!-- ========== LEVEL 2C: DELAYED ========== -->
+        <div id="scene-2c" class="scene" data-stage="chambers" data-narrate="true">
+            <div class="scene-header-text">Case No. 2026-CV-0041 — Continued</div>
+            <div class="narrative">
+                <p>"The Court will continue this matter for sixty days pending independent psychological evaluation and the appointment of a guardian ad litem."</p>
+                <p>The intended spouse's lawyer objects immediately. "Your Honor, the statute contains no requirement for—"</p>
+                <p>"Overruled." Your voice is louder than you intended. The courtroom goes quiet. "The statute also contains no prohibition on due diligence. This Court will exercise its discretion."</p>
+                <p>You are not sure where the word discretion came from. The statute does not mention discretion. It says may authorize, which is not the same thing.</p>
+                <p>The psychologist's report arrives in three weeks. The minor, she writes, displays signs of acute anxiety and responds to questions about the intended spouse with rehearsed phrases. When asked what she wants, she quotes her mother. When asked what she fears, she says, "Disappointing everyone."</p>
+                <p>The guardian ad litem recommends denial. The mother's lawyer files a motion to compel. The local newspaper calls your chambers. The headline they are considering: Judge Obstructs Young Love Over Bureaucratic Technicality.</p>
+            </div>
+
+            <div class="choices">
+                <button class="choice" onclick="goTo('scene-3g')">Stand by the continuance. Cite the psychological findings. Accept that you will be the villain in someone's story.</button>
+                <button class="choice" onclick="goTo('scene-3h')">Grant the waiver under pressure. Tell yourself that sixty days of scrutiny is more than most of these children receive.</button>
+                <button class="choice" onclick="goTo('scene-3i')">Recuse yourself. Admit that you have lost the ability to view this case with the necessary judicial detachment.</button>
+            </div>
+        </div>
+
+        <!-- ========== LEVEL 3A: ASSEMBLY LINE ========== -->
+        <div id="scene-3a" class="scene" data-stage="courtroom" data-narrate="true">
+            <div class="scene-header-text">Docket Review — Six Months Later</div>
+            <div class="narrative">
+                <p>You have become efficient. You can review a waiver petition in four minutes. You have developed a taxonomy: pregnancy cases, parental pressure cases, Romeo-and-Juliet cases with nervous teenagers and furious parents. You sort them, stamp them, file them. The gavel falls. The machine runs.</p>
+                <p>But efficiency has a cost. You no longer see faces. You see forms. You no longer hear voices. You hear statutory citations.</p>
+                <p>Last Tuesday, you signed a waiver for a twelve-year-old. You did not realize her age until the clerk pointed it out after the hearing. You had been looking at the wrong line on the form. You corrected the order. You moved on.</p>
+                <p>Now, in your chambers at night, you find yourself reading the statute again and again. May authorize. Not shall. Not must. May. The legislature gave you a choice, and you have chosen convenience.</p>
+            </div>
+
+            <div class="narrative">
+                <p>This morning, the court reporter mentioned that your approval rate for waiver petitions is the highest in the state. She said it with a smile, as if it were a compliment. You smiled back. You are not sure when you learned to smile like that.</p>
+                <p>The petitions arrive faster now. The word has spread. Your courtroom has become a destination.</p>
+            </div>
+
+            <div class="choices">
+                <button class="choice" onclick="ending('ending-a')">Continue. The law is the law. You did not write it. You merely apply it.</button>
+                <button class="choice" onclick="goTo('scene-4a')">Stop. Refuse to hear any more waiver petitions until the legislature establishes a floor. Let them impeach you if they dare.</button>
+            </div>
+        </div>
+
+        <!-- ========== LEVEL 3B: PARTIAL LIMIT ========== -->
+        <div id="scene-3b" class="scene" data-stage="chambers" data-narrate="true">
+            <div class="scene-header-text">Docket Review — Four Months Later</div>
+            <div class="narrative">
+                <p>You have tried to build a fence in an open field. You grant waivers for sixteen and seventeen. You deny them for thirteen and fourteen. You agonize over fifteen. You tell yourself you have found a principle.</p>
+                <p>But the principle is sand. The fifteen-year-old you denied last month married in Texas instead. The fourteen-year-old you flagged for review was withdrawn by her parents and refiled in a county where the judge does not ask questions. Your fence has gates, and everyone knows how to open them.</p>
+                <p>Yesterday, a lawyer you respect pulled you aside at the bar association luncheon. "You're making enemies," he said. "Judges who grant these waivers don't appreciate the implication that they're doing something wrong. And the legislature doesn't appreciate a judge who acts like a legislator."</p>
+                <p>"Then the legislature should do its job," you said.</p>
+                <p>He laughed. It was not a kind laugh. "They did. They wrote 'may.' That's the job. The rest is yours."</p>
+            </div>
+
+            <div class="choices">
+                <button class="choice" onclick="ending('ending-c')">Hold the line. Keep your arbitrary standard. Arbitrary is better than nothing.</button>
+                <button class="choice" onclick="ending('ending-d')">Abandon the standard. The inconsistency is worse than the cruelty. At least cruelty is honest.</button>
+            </div>
+        </div>
+
+        <!-- ========== LEVEL 3C: THE PHONE CALL ========== -->
+        <div id="scene-3c" class="scene" data-stage="night" data-narrate="true">
+            <div class="scene-header-text">Telephone Call — Evening</div>
+            <div class="narrative">
+                <p>Professor Elena Voss taught you statutory interpretation twenty years ago. She is retired now, living in a cabin in the Ozarks with too many cats and a satellite phone. When she answers, her voice is thinner than you remember, but the mind behind it is still sharp as a scalpel.</p>
+                <p>"You want to know if you have a duty beyond the text," she says, before you have finished explaining. "The answer is no. And yes. And it depends on which version of yourself you want to live with."</p>
+                <p>You hear a cat yowl in the background. She ignores it.</p>
+                <p>"Statutes with no floors are not accidents, my dear. They are political solutions to political problems. The legislature wanted ambiguity. They wanted to permit child marriage without having to vote for it explicitly. They built a machine that runs on judicial complicity, and they made sure the judges would be the ones with blood on their hands."</p>
+                <p>"So what do I do?"</p>
+                <p>"That," she says, "is the question they want you to ask. Because as long as you are asking what you should do, you are not asking why the legislature made sure the question existed in the first place."</p>
+                <p>The line goes dead. You are not sure if she hung up, or if the mountains ate the signal.</p>
+            </div>
+
+            <div class="choices">
+                <button class="choice" onclick="ending('ending-e')">Go public. Leak your concerns to a journalist. Force the legislature to close the hole they opened.</button>
+                <button class="choice" onclick="ending('ending-f')">Resign. You cannot be complicit, and you cannot win. The only clean hand is the one that lets go.</button>
+            </div>
+        </div>
+
+        <!-- ========== LEVEL 3D: CONFRONTATION ========== -->
+        <div id="scene-3d" class="scene" data-stage="creek" data-narrate="true">
+            <div class="scene-header-text">Creek County Courthouse — Afternoon</div>
+            <div class="narrative">
+                <p>Judge Harlan P. Wright has been on the bench for thirty-four years. His chambers smell of pipe tobacco and furniture polish. He offers you coffee. You decline.</p>
+                <p>"I know why you're here," he says. "The fourteen-year-old."</p>
+                <p>"What standard did you apply?"</p>
+                <p>He stirs his coffee slowly. "The same one I've applied for three decades. Parental consent plus pregnancy equals waiver. It's not complicated."</p>
+                <p>"She's a child."</p>
+                <p>"She's pregnant." He sets down the spoon. It rings against the porcelain like a small bell. "You want to know the truth? The truth is that these girls were getting married anyway, long before there were courthouses. The statute just makes it tidy. You think you're protecting them by saying no? You're just pushing them into cars and across state lines. At least here there's a paper trail. At least here we know where they are."</p>
+                <p>"That's not a legal standard. That's a resignation."</p>
+                <p>He smiles. It is the smile of a man who has made peace with something you have not yet learned to name. "Come back in twenty years," he says. "Tell me what your standard cost you."</p>
+            </div>
+
+            <div class="choices">
+                <button class="choice" onclick="ending('ending-g')">Report him to the judicial conduct commission. If his standard is resignation, let him resign.</button>
+                <button class="choice" onclick="ending('ending-h')">Leave in silence. He is not the enemy. The statute is the enemy. And the statute outlives both of you.</button>
+            </div>
+        </div>
+
+        <!-- ========== LEVEL 3E: MEMORANDUM ========== -->
+        <div id="scene-3e" class="scene" data-stage="office" data-narrate="true">
+            <div class="scene-header-text">Judicial Council Memorandum — Drafted</div>
+            <div class="narrative">
+                <p>You spend six weeks on the memorandum. You cite every state that has enacted a floor. You document the demographic data. You argue that the absence of a statutory minimum transforms judicial waiver from an exception into a loophole, and that judges who operate within that loophole are not exercising discretion but participating in a structural failure.</p>
+                <p>You send it to the state judicial council. You cc the chief justice. You wait.</p>
+                <p>The response comes from the council's administrative director. Polite. Noncommittal. The council, he writes, does not have authority to amend statutes. The matter is properly before the legislature. Your concerns have been noted.</p>
+                <p>Noted. The word echoes in your chambers like a footstep in an empty house.</p>
+                <p>Two months later, you learn that a version of your memorandum was leaked to a state representative. It was used in a committee hearing. The bill to establish a minimum age of sixteen failed by four votes. One of the representatives who voted no told the newspaper that "activist judges" were trying to undermine parental rights.</p>
+                <p>Your name was not mentioned. You are not sure if that makes it better or worse.</p>
+            </div>
+
+            <div class="choices">
+                <button class="choice" onclick="ending('ending-i')">Try again. Draft a narrower proposal. Work with legislators behind the scenes. Accept that change is slow and the damage is fast.</button>
+                <button class="choice" onclick="ending('ending-j')">Stop fighting the statute and start fighting the culture. Speak at schools, churches, community centers. Try to reach the parents before they reach your courtroom.</button>
+            </div>
+        </div>
+
+        <!-- ========== LEVEL 3F: SURRENDER ========== -->
+        <div id="scene-3f" class="scene" data-stage="chambers" data-narrate="true">
+            <div class="scene-header-text">Chambers — Late Evening</div>
+            <div class="narrative">
+                <p>You open the next folder. You do not read the names. You find the age, the consent, the grounds. You sign. The pen moves across the paper like a thing with its own will. You have stopped asking whether you should sign. You have started asking only whether the form is complete.</p>
+                <p>At night, you dream of gavels. Not the one on your bench — a different gavel, older, made of bone or something like bone. It strikes a surface that sounds like a heartbeat. You wake with the rhythm in your chest and cannot tell if it is your heart or the dream's.</p>
+                <p>The court reporter says you have become the most efficient judge in the district. She means it as praise. You thank her. You mean it as surrender.</p>
+                <p>One morning, you sign a waiver and look up to find the gallery empty. The parties have already left. You signed without them present. You are not sure when they left, or if they were ever there. The form is complete. That is what matters.</p>
+            </div>
+
+            <div class="choices">
+                <button class="choice" onclick="ending('ending-k')">Continue until retirement. The machine does not need your soul. It only needs your signature.</button>
+            </div>
+        </div>
+
+        <!-- ========== LEVEL 3G: STAND FIRM ========== -->
+        <div id="scene-3g" class="scene" data-stage="courtroom" data-narrate="true">
+            <div class="scene-header-text">Opinion — Filed with the Clerk</div>
+            <div class="narrative">
+                <p>Your opinion is thirty-seven pages. You cite the psychological findings. You discuss the developmental neuroscience of adolescent decision-making. You argue that a statute which permits marriage at any age, by any judge, with any standard, is not a law but a delegation of power without accountability.</p>
+                <p>The newspaper does not print the neuroscience. They print the headline: Judge Blocks Pregnant Teen from Marrying. The comments section is a sewer. Your home address appears on a message board. Your tires are slashed in the courthouse parking lot.</p>
+                <p>The family appeals. The appellate court reverses. Their opinion is four pages. They hold that the statute grants broad discretion and that your imposition of additional requirements exceeded your authority. The case is remanded. A different judge grants the waiver in ten minutes.</p>
+                <p>You read the appellate opinion three times. Then you read the statute again. May authorize. The word may has never looked so much like a wound.</p>
+            </div>
+
+            <div class="choices">
+                <button class="choice" onclick="ending('ending-l')">Appeal to the state supreme court. Force them to say, explicitly, what the legislature refused to say.</button>
+                <button class="choice" onclick="ending('ending-m')">Accept the reversal. Continue hearing cases, but document every one. Build a record so damning that no future court can pretend not to see it.</button>
+            </div>
+        </div>
+
+        <!-- ========== LEVEL 3H: CAVE ========== -->
+        <div id="scene-3h" class="scene" data-stage="chambers" data-narrate="true">
+            <div class="scene-header-text">Chambers — The Following Week</div>
+            <div class="narrative">
+                <p>You grant the waiver. You tell yourself that sixty days of scrutiny is more than most of these children receive. You tell yourself that the psychological report, while concerning, does not meet the standard of incapacity. You tell yourself that the mother has the right to direct her daughter's upbringing. You tell yourself many things.</p>
+                <p>The girl thanks you. Her voice is small and polite. She has been taught to be grateful. You wonder who taught her, and what else they taught her.</p>
+                <p>That night, you sit in your car in the courthouse parking lot for forty minutes before you can bring yourself to drive home. The steering wheel is cold. The dashboard clock ticks. You count the ticks and realize you are waiting for something to happen. Nothing happens. You start the engine.</p>
+                <p>The next petition arrives the next morning. You grant it in twenty minutes. The one after that, in fifteen. You are finding your rhythm again.</p>
+            </div>
+
+            <div class="choices">
+                <button class="choice" onclick="ending('ending-n')">Rationalize your way to the end of your term. You are not a monster. You are a functionary. There is a difference, even if it is thin.</button>
+            </div>
+        </div>
+
+        <!-- ========== LEVEL 3I: RECUSAL ========== -->
+        <div id="scene-3i" class="scene" data-stage="hallway" data-narrate="true">
+            <div class="scene-header-text">Order of Recusal — Filed</div>
+            <div class="narrative">
+                <p>"The undersigned judge, having determined that continued involvement in these proceedings may be influenced by factors extrinsic to the record, hereby recuses herself from all matters involving petitions for marriage waivers under Title 43, Section 3, until further notice."</p>
+                <p>The chief judge assigns your waiver docket to Judge Wright in Creek County. The petitions move. The waivers are granted. The machine runs without you.</p>
+                <p>You continue to hear other cases. Divorce. Custody. Probate. You tell yourself you are still serving. You tell yourself that stepping away from one docket does not mean stepping away from justice.</p>
+                <p>But in your dreams, the gavel still falls. And in the dream, you are not holding it. You are beneath it.</p>
+            </div>
+
+            <div class="choices">
+                <button class="choice" onclick="ending('ending-o')">Live with the recusal. You saved yourself. Whether you saved anyone else is a question you stopped asking.</button>
+            </div>
+        </div>
+
+        <!-- ========== LEVEL 4A: THE OBSTRUCTION ========== -->
+        <div id="scene-4a" class="scene" data-stage="courtroom" data-narrate="true">
+            <div class="scene-header-text">Administrative Order — Filed</div>
+            <div class="narrative">
+                <p>You stop. You refuse to hear any more waiver petitions until the legislature establishes a floor. You draft an administrative order citing judicial resource allocation and the need for legislative clarity. You know it is a fiction. You know everyone knows it is a fiction.</p>
+                <p>The chief judge calls you to his office. He does not raise his voice. He simply explains, patiently, that your docket will be reassigned. That Judge Wright in Creek County has agreed to take the overflow. That your refusal changes nothing except your own caseload.</p>
+                <p>"You're not stopping the machine," he says. "You're just stepping out of its way."</p>
+                <p>He is right. The petitions still arrive. The waivers are still granted. The only difference is that your signature is no longer on them. You have not stopped the river. You have simply moved your rock.</p>
+                <p>But something unexpected happens. A reporter from the state capital newspaper calls. She has heard about your administrative order. She wants to know why a sitting judge refused to hear a category of cases. She wants to know what is wrong with the statute.</p>
+            </div>
+
+            <div class="choices">
+                <button class="choice" onclick="goTo('scene-5a')">Speak to the reporter. On the record. Name the statute. Name the hole. Let the public know what the legislature left open.</button>
+                <button class="choice" onclick="goTo('scene-5b')">Decline the interview. You have already stuck your neck out. Further exposure is not courage. It is vanity.</button>
+            </div>
+        </div>
+
+        <!-- ========== LEVEL 5A: THE INTERVIEW ========== -->
+        <div id="scene-5a" class="scene" data-stage="podium" data-narrate="true">
+            <div class="scene-header-text">State Capital Gazette — Published Interview</div>
+            <div class="narrative">
+                <p>The article runs on a Sunday. The headline is restrained: "District Judge Cites Statutory Ambiguity in Refusing Waiver Cases." But the subheading is sharper: "Judge Says Legislature 'Left a Hole' in Child Marriage Law."</p>
+                <p>You are quoted directly. You said the words yourself, into the reporter's recorder. You named the statute. You named the absence. You named the children who fall into the gap between what the law says and what it does not say.</p>
+                <p>The response is immediate. The legislative leadership issues a statement calling your remarks "inappropriate judicial activism." The bar association president suggests you "may want to consider whether continued service is appropriate." Your tires are slashed again. This time, you are not surprised.</p>
+                <p>But something else happens too. A mother in Tulsa reads the article. She has a fifteen-year-old daughter. She was considering a waiver petition. She changes her mind. She calls a domestic violence hotline instead. The hotline worker mentions your name in the staff meeting. You will never know this. But it happened.</p>
+                <p>Three months later, a freshman representative introduces a bill. It establishes a minimum age of sixteen for all judicial waivers. It fails in committee by two votes. But it is the first time the issue has reached the floor. It is the first crack in the wall.</p>
+            </div>
+
+            <div class="choices">
+                <button class="choice" onclick="ending('ending-p')">Continue speaking. Continue naming the hole. Accept that you will be the villain in the legislature's story, but maybe the hero in someone else's.</button>
+                <button class="choice" onclick="ending('ending-q')">Stop speaking. You have done enough. The crack is there. Let others widen it. You are tired of being the face of the fight.</button>
+            </div>
+        </div>
+
+        <!-- ========== LEVEL 5B: THE SILENCE ========== -->
+        <div id="scene-5b" class="scene" data-stage="chambers" data-narrate="true">
+            <div class="scene-header-text">Chambers — Six Weeks Later</div>
+            <div class="narrative">
+                <p>You decline the interview. You tell the reporter you have no comment. You tell yourself you are being prudent. You tell yourself you have already done enough by refusing the docket. You tell yourself many things.</p>
+                <p>The administrative order remains in effect. Your waiver docket stays reassigned. Judge Wright continues to grant waivers in Creek County. The machine runs without your signature.</p>
+                <p>You hear, through courthouse gossip, that a thirteen-year-old was married last month in Wright's courtroom. You hear that the mother cried. You hear that the judge asked no questions. You hear that the whole thing took eight minutes.</p>
+                <p>You sit in your chambers and stare at the wall. The wall is beige. It was painted beige by the county maintenance crew three years ago. You have stared at it for three years. You have never noticed it before.</p>
+                <p>The beige wall is the color of neutrality. It is the color of not choosing. It is the color of your administrative order, which changed nothing except which judge signs the forms.</p>
+            </div>
+
+            <div class="choices">
+                <button class="choice" onclick="ending('ending-r')">Accept the beige. Neutrality is not complicity. You refused the docket. That is what you could do. That is what you did.</button>
+                <button class="choice" onclick="goTo('scene-6a')">Call the reporter back. Reconsider the interview. The beige is suffocating you. Say something, even if it changes nothing.</button>
+            </div>
+        </div>
+
+        <!-- ========== LEVEL 6A: THE SECOND CHANCE ========== -->
+        <div id="scene-6a" class="scene" data-stage="night" data-narrate="true">
+            <div class="scene-header-text">Telephone Call — 11:47 PM</div>
+            <div class="narrative">
+                <p>You call the reporter at night. You apologize for the hour. You do not apologize for the call. You tell her you have reconsidered. You tell her you will speak on the record. You tell her you will name the statute, name the hole, name the children.</p>
+                <p>She is quiet for a moment. Then: "Why now?"</p>
+                <p>"Because I heard about a thirteen-year-old who was married in eight minutes. Because I refused the docket so I wouldn't have to sign those orders, and they got signed anyway. Because the beige wall in my chambers is the color of cowardice, and I am tired of looking at it."</p>
+                <p>She records everything. The article runs the following Sunday. The headline is less restrained this time. The legislature is less restrained in its response. The bar association is less restrained in its concern for your judicial temperament.</p>
+                <p>But the freshman representative reads the article. She introduces the bill again. This time, it passes committee. This time, it reaches the floor. This time, it fails by one vote instead of two.</p>
+                <p>The crack widens. Slowly. Painfully. But it widens.</p>
+            </div>
+
+            <div class="choices">
+                <button class="choice" onclick="ending('ending-s')">Continue. Testify before the legislature. Speak at schools. Become the face of the fight you tried to avoid. Accept that some fights choose you.</button>
+            </div>
+        </div>
+
+        <!-- ========== ENDINGS ========== -->
+
+        <div id="ending-a" class="scene" data-stage="courtroom" data-narrate="true">
+            <div class="ending-title">Ending I — The Operator</div>
+            <div class="ending-text">"You did not write the law. You merely applied it."</div>
+            <div class="narrative">
+                <p>You serve twenty more years. You sign hundreds of waivers. You develop a reputation for efficiency and fairness — fairness meaning that you treat every petition the same, regardless of age, circumstance, or consequence.</p>
+                <p>At your retirement party, the bar association presents you with a crystal gavel. You keep it on your mantelpiece. At night, when the house is quiet, you sometimes think you can hear it strike a surface that is not there.</p>
+                <p>You die at eighty-two, surrounded by family, in a house that smells of old wood and floor wax. The obituary calls you a dedicated public servant. It does not mention the waivers. It does not mention the ages. It does not mention that the statute you served still contains no floor, and that the judges who came after you learned from your example.</p>
+                <p>The machine outlives you. That was always the point.</p>
+            </div>
+            <div class="divider">— THE END —</div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="start-btn" onclick="location.reload()">Begin Again</button>
+            </div>
+        </div>
+
+        <div id="ending-b" class="scene" data-stage="appeal" data-narrate="true">
+            <div class="ending-title">Ending II — The Obstruction</div>
+            <div class="ending-text">"You stopped the docket. They stopped you."</div>
+            <div class="narrative">
+                <p>The legislature does not impeach you. They do not need to. The chief judge reassigns your waiver docket to another courtroom. Your caseload is reduced. Your influence shrinks. You become the judge that other judges mention in warning stories.</p>
+                <p>Five years later, a bill to establish a minimum age of sixteen finally passes. You read about it in the newspaper. The article does not mention your name. The bill passed because a fourteen-year-old in another county died in childbirth, and her death made the evening news. Her death, not your resistance.</p>
+                <p>You continue to serve. You continue to wonder if the five years between your stand and the bill's passage contained children who might have been saved, or if they would have married elsewhere regardless. You wonder this until wondering becomes a habit, and habits become character.</p>
+                <p>At your funeral, no one mentions the waivers. No one mentions the stand. They mention your garden. They mention your kindness to clerks. They mention that you were, by all accounts, a good judge.</p>
+                <p>The statute was amended. You are not sure if you helped or if you were merely early.</p>
+            </div>
+            <div class="divider">— THE END —</div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="start-btn" onclick="location.reload()">Begin Again</button>
+            </div>
+        </div>
+
+        <div id="ending-c" class="scene" data-stage="chambers" data-narrate="true">
+            <div class="ending-title">Ending III — The Fence</div>
+            <div class="ending-text">"You built a wall in sand. It held longer than you expected."</div>
+            <div class="narrative">
+                <p>You maintain your arbitrary standard for eleven years. Sixteen and up: grant, with conditions. Fifteen: review. Fourteen and below: deny. You are not consistent. You make exceptions. You hate yourself for the exceptions. You hate yourself more for the denials that you know simply redirect the children to other counties.</p>
+                <p>One day, a fifteen-year-old you denied drives to Texas with her intended spouse. They marry there. Six months later, she is found dead in a motel room. The autopsy cites blunt force trauma. The husband claims she fell. He is not charged.</p>
+                <p>The newspaper runs a series. Your name appears. Not as a villain — you denied the waiver, after all — but as part of the system that failed her. The system that pushed her across a state line. The system that made her someone else's problem.</p>
+                <p>You read the series three times. Then you burn it. The flame is the color of dried blood.</p>
+                <p>You continue to serve. You continue to build your fence. You no longer believe it keeps anyone safe. You build it because the alternative is open field, and open field is worse.</p>
+            </div>
+            <div class="divider">— THE END —</div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="start-btn" onclick="location.reload()">Begin Again</button>
+            </div>
+        </div>
+
+        <div id="ending-d" class="scene" data-stage="courtroom" data-narrate="true">
+            <div class="ending-title">Ending IV — The Honest Cruelty</div>
+            <div class="ending-text">"At least you no longer pretended to care."</div>
+            <div class="narrative">
+                <p>You abandon your standard. You grant every waiver that crosses your desk. You tell yourself that inconsistency was the real cruelty — that giving some children hope while denying others was a kind of violence. Better to be uniformly permissive than arbitrarily protective.</p>
+                <p>The argument does not convince you, but you repeat it until it becomes a rhythm, and rhythm becomes peace. You sleep better. You no longer lie awake counting ages. You have accepted that the law is a river and you are a stone. The water moves around you. The water always moves.</p>
+                <p>Years later, a researcher contacts you. She is writing a history of child marriage in Oklahoma. She wants to know your judicial philosophy. You tell her: "The legislature wrote 'may.' I chose to interpret that word as permission. Another judge might interpret it as discretion. The statute does not distinguish between the two."</p>
+                <p>She asks if you ever denied a waiver. You think for a long time. "Once," you say. "Early on. I don't remember why."</p>
+                <p>This is a lie. You remember exactly why. You remember her face. You remember the denial. You remember the marriage certificate from Creek County. You remember all of it. You have simply stopped admitting that memory has weight.</p>
+            </div>
+            <div class="divider">— THE END —</div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="start-btn" onclick="location.reload()">Begin Again</button>
+            </div>
+        </div>
+
+        <div id="ending-e" class="scene" data-stage="street" data-narrate="true">
+            <div class="ending-title">Ending V — The Leak</div>
+            <div class="ending-text">"You broke the seal. The water rushed in."</div>
+            <div class="narrative">
+                <p>The journalist is careful. She does not name you. She quotes "a sitting district judge" who describes the waiver system as "a structural loophole that delegates moral responsibility to the judiciary." The article runs on the front page. It is picked up by national outlets.</p>
+                <p>The legislature holds hearings. They are contentious. Religious groups argue parental rights. Medical professionals argue developmental science. The bill to establish a minimum age fails by one vote in committee. The representative who cast the deciding vote says he cannot support legislation based on "anonymous sources and media hysteria."</p>
+                <p>You are not disciplined. You are not named. But the chief judge knows. The other judges know. Your chambers become a cold place. Conversations stop when you enter rooms. You are not ostracized. You are simply not included.</p>
+                <p>Two years later, the bill passes. A different representative, a different committee, a different news cycle. You read the text of the new law. It establishes a minimum age of sixteen for judicial waivers. It contains exceptions. It is not perfect. It is better than what existed.</p>
+                <p>You do not know if your leak mattered. You do not know if the bill would have passed without the article. You know only that you broke a rule you were raised to obey, and that the world did not end. It merely changed, slightly, in a direction you cannot measure.</p>
+            </div>
+            <div class="divider">— THE END —</div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="start-btn" onclick="location.reload()">Begin Again</button>
+            </div>
+        </div>
+
+        <div id="ending-f" class="scene" data-stage="woods" data-narrate="true">
+            <div class="ending-title">Ending VI — The Clean Hand</div>
+            <div class="ending-text">"You let go. The gavel fell without you."</div>
+            <div class="narrative">
+                <p>You resign from the bench. You cite personal reasons. The newspaper runs a brief notice. Your colleagues express surprise. You were, they say, a promising judge.</p>
+                <p>You move to a small town in New Mexico. You teach paralegal courses at a community college. You do not mention your judicial service. Your students know you only as the professor who grades harshly and drinks too much coffee.</p>
+                <p>Years pass. The Oklahoma statute is amended, then amended again. You follow the changes from a distance. You no longer have a vote. You no longer have a gavel. You have only the memory of a fourteen-year-old girl in a church dress, looking back at you as her mother led her out of your courtroom.</p>
+                <p>Sometimes, in the desert at night, you think you hear a gavel strike. You tell yourself it is a branch against the window. You tell yourself it is the wind. You do not tell yourself what you know: that some sounds follow you across state lines, across years, across the boundary between who you were and who you became.</p>
+                <p>You die in New Mexico. Your obituary mentions the community college. It does not mention the bench. The machine outlived you. That was always the point.</p>
+            </div>
+            <div class="divider">— THE END —</div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="start-btn" onclick="location.reload()">Begin Again</button>
+            </div>
+        </div>
+
+        <div id="ending-g" class="scene" data-stage="creek" data-narrate="true">
+            <div class="ending-title">Ending VII — The Accuser</div>
+            <div class="ending-text">"You named him. They named you trouble."</div>
+            <div class="narrative">
+                <p>The judicial conduct commission finds no violation. Judge Wright's standard, they rule, falls within the broad discretion granted by the statute. Your complaint is dismissed. The newspaper reports the dismissal. The headline implies that you filed a frivolous complaint against a respected colleague.</p>
+                <p>Judge Wright does not speak to you again. Neither do most of the other judges in your district. You have become the kind of judge who reports other judges — a category that exists outside the fraternity of the bench.</p>
+                <p>You continue to serve. You continue to deny waivers when you can, grant them when you must. You continue to believe that Wright was wrong, even as you suspect that your complaint was as much about your own guilt as his. You denied the waiver. He granted it. You needed him to be the villain so that you could be the hero. The commission refused to cast the roles.</p>
+                <p>At night, you dream of two gavels striking in unison. One is yours. One is his. You cannot tell which sound is judgment and which is surrender.</p>
+            </div>
+            <div class="divider">— THE END —</div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="start-btn" onclick="location.reload()">Begin Again</button>
+            </div>
+        </div>
+
+        <div id="ending-h" class="scene" data-stage="hallway" data-narrate="true">
+            <div class="ending-title">Ending VIII — The Recognition</div>
+            <div class="ending-text">"He was not the enemy. The statute was. And the statute outlived you both."</div>
+            <div class="narrative">
+                <p>You leave Creek County in silence. You do not report Judge Wright. You do not mention the conversation again. You understand, finally, that he is not your adversary. He is your mirror — a version of yourself who made peace with the ambiguity earlier, who stopped fighting the river and learned to float.</p>
+                <p>You return to your courtroom. You continue to hear waiver petitions. You continue to deny some and grant others. You no longer believe you are saving anyone. You no longer believe you are damning anyone. You believe only that the statute is a hole, and that holes do not have morals. They merely exist, and things fall into them.</p>
+                <p>Judge Wright retires two years before you do. At his retirement party, someone jokes about his "assembly line." He laughs. You laugh too, from across the room. You have never spoken again, but you share a language that no one else in that room speaks. It is the language of people who have looked into the hole and chosen not to describe what they saw.</p>
+                <p>The statute is amended the year after you retire. You read about it in a magazine at your dentist's office. You do not feel relief. You do not feel anger. You feel only the strange neutrality of a witness who has been excused from the stand.</p>
+            </div>
+            <div class="divider">— THE END —</div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="start-btn" onclick="location.reload()">Begin Again</button>
+            </div>
+        </div>
+
+        <div id="ending-i" class="scene" data-stage="office" data-narrate="true">
+            <div class="ending-title">Ending IX — The Incrementalist</div>
+            <div class="ending-text">"You traded purity for persistence. Neither satisfied you."</div>
+            <div class="narrative">
+                <p>You spend three years working with legislators. You draft narrower bills. You compromise. You accept a minimum age of sixteen instead of eighteen. You accept judicial waiver provisions with stricter standards. You accept less than you wanted because less is more than nothing.</p>
+                <p>The bill passes. It is not the bill you wanted. It contains exceptions. It contains loopholes. But it contains a floor, and a floor is a foundation, and foundations can be built upon.</p>
+                <p>You attend the signing ceremony. The governor shakes your hand. The photographer captures the moment. In the photograph, you are smiling. You do not recognize the smile. It looks like the smile of someone who has won, and you are not sure you have won anything.</p>
+                <p>That night, you look up the girl from your first case. She is twenty now. She has two children. She works at a grocery store. She does not remember your name. She remembers only that a judge signed a paper, and that the paper changed her life before she was old enough to understand what change meant.</p>
+                <p>You close the browser. You tell yourself that the new law will help the next girl. You tell yourself this until it becomes a prayer, and prayers are what you have when arguments fail.</p>
+            </div>
+            <div class="divider">— THE END —</div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="start-btn" onclick="location.reload()">Begin Again</button>
+            </div>
+        </div>
+
+        <div id="ending-j" class="scene" data-stage="classroom" data-narrate="true">
+            <div class="ending-title">Ending X — The Preacher</div>
+            <div class="ending-text">"You spoke to the parents. Some listened. Most did not."</div>
+            <div class="narrative">
+                <p>You spend your weekends driving to small towns. You speak at churches, schools, community centers. You do not talk about the law. You talk about development, about coercion, about the difference between a child who says yes and a child who has been taught that no is not an option.</p>
+                <p>Some parents listen. Some argue. Some walk out. A pastor in a rural county tells his congregation that you are part of a government plot to destroy the family. You receive threats. You continue to drive.</p>
+                <p>One evening, after a talk at a high school, a girl approaches you. She is sixteen. She says her mother has been pressuring her to marry her boyfriend. She says she does not want to. She says she wants to go to college. She asks what she should do.</p>
+                <p>You tell her about emancipation. You tell her about domestic violence resources. You tell her that she has rights, even if the law does not always enforce them. You give her your card. You do not know if she will call.</p>
+                <p>She does not call. But three months later, you receive a letter. No return address. Inside, a photograph of the girl in a graduation gown. On the back, in a handwriting you do not recognize: She said thank you.</p>
+                <p>You keep the photograph in your desk drawer. You look at it when the petitions pile up. It is not enough. It is something.</p>
+            </div>
+            <div class="divider">— THE END —</div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="start-btn" onclick="location.reload()">Begin Again</button>
+            </div>
+        </div>
+
+        <div id="ending-k" class="scene" data-stage="chambers" data-narrate="true">
+            <div class="ending-title">Ending XI — The Functionary</div>
+            <div class="ending-text">"The machine did not need your soul. It only needed your signature."</div>
+            <div class="narrative">
+                <p>You serve until mandatory retirement. You sign thousands of waivers. You do not remember any of the names. You remember only the rhythm: open, review, sign, file. Open, review, sign, file. The gavel falls. The machine runs.</p>
+                <p>On your last day, the clerk brings you a final petition. You sign it without reading it. You hand it back. You pack your chambers. You take the crystal gavel from your retirement party. You drive home.</p>
+                <p>The years that follow are quiet. You garden. You watch television. You do not think about the bench. When you do, you think about it as a job, like any other. You processed forms. You followed procedures. You were not responsible for the forms. You were not responsible for the procedures.</p>
+                <p>At night, sometimes, you dream of a courtroom that stretches forever. The gallery is filled with children in church dresses. They do not speak. They only watch. You sit at the bench, but there is no gavel. There is only a pen, and the pen moves across paper that never runs out.</p>
+                <p>You wake up sweating. You tell yourself it was only a dream. You tell yourself this until the day you die, which is peaceful, in a hospital, surrounded by people who love you and do not know what you signed.</p>
+            </div>
+            <div class="divider">— THE END —</div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="start-btn" onclick="location.reload()">Begin Again</button>
+            </div>
+        </div>
+
+        <div id="ending-l" class="scene" data-stage="appeal" data-narrate="true">
+            <div class="ending-title">Ending XII — The Appeal</div>
+            <div class="ending-text">"You forced them to speak. They spoke against you."</div>
+            <div class="narrative">
+                <p>The state supreme court declines to hear your appeal. Their order is one sentence: "The Court of Appeals correctly interpreted the statute." No dissent. No elaboration. The hole in the law remains. The legislature remains silent. The machine runs.</p>
+                <p>You continue to serve. You continue to deny waivers. You continue to be reversed. You become a fixture — the judge who says no, the judge who is overruled, the judge who keeps trying. Your colleagues find you exhausting. Your clerks find you admirable. The children find you irrelevant, because they marry anyway, in other counties, other states, other lives.</p>
+                <p>One day, a reporter asks why you keep fighting a battle you cannot win. You tell her: "Because losing slowly is different from losing quickly. Because every denial buys time. Because time is the only thing a child has that an adult wants."</p>
+                <p>The article runs. It changes nothing. But a law student reads it and decides to specialize in family law. A decade later, she runs for the legislature. Two decades later, she chairs the committee that finally amends the statute.</p>
+                <p>You do not live to see it. You die believing you failed. You did not fail. You merely planted seeds in ground you would not live to see harvested. This is the nature of slow justice. It outlives the just.</p>
+            </div>
+            <div class="divider">— THE END —</div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="start-btn" onclick="location.reload()">Begin Again</button>
+            </div>
+        </div>
+
+        <div id="ending-m" class="scene" data-stage="chambers" data-narrate="true">
+            <div class="ending-title">Ending XIII — The Record</div>
+            <div class="ending-text">"You built a monument of paper. Paper burns. But it burns slowly."</div>
+            <div class="narrative">
+                <p>You document every case. You write detailed opinions. You cite studies, statistics, the neuroscience of adolescent development. You build a record so comprehensive that no future court can claim ignorance. You file it all. You wait.</p>
+                <p>The record grows. It fills boxes. It fills shelves. It fills a room in the courthouse basement that no one visits. You know it is there. You know what it says. You know that someday, someone will need it.</p>
+                <p>That day comes seven years later. A federal lawsuit challenges the constitutionality of the waiver statute. The plaintiffs' attorney discovers your record. She cites your opinions in her brief. She calls you as a witness. You testify for three days.</p>
+                <p>The district court rules against the plaintiffs. The statute, the judge holds, is rationally related to a legitimate state interest. The appeal is pending when you retire. You do not live to see the final outcome.</p>
+                <p>But your record remains. It is cited in law review articles. It is referenced in legislative hearings. It becomes part of the architecture of a movement that you did not name but helped build. The paper does not burn. It yellows. It crumbles. But it persists, like memory, like guilt, like the faint hope that documentation is a form of resistance.</p>
+            </div>
+            <div class="divider">— THE END —</div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="start-btn" onclick="location.reload()">Begin Again</button>
+            </div>
+        </div>
+
+        <div id="ending-n" class="scene" data-stage="home" data-narrate="true">
+            <div class="ending-title">Ending XIV — The Rationalization</div>
+            <div class="ending-text">"You were not a monster. You were a functionary. The difference was thin."</div>
+            <div class="narrative">
+                <p>You serve your term. You grant waivers. You tell yourself that you are preventing worse outcomes — that children who cannot marry in your courtroom will marry in parking lots, in other states, in secrecy. You tell yourself that the paper trail protects them. You tell yourself that judicial oversight, however minimal, is better than none.</p>
+                <p>The arguments are not false. They are incomplete. You know what they omit. You omit it too, because completeness is unbearable.</p>
+                <p>At night, you sleep well. You have trained yourself to sleep well. You have learned that the mind adapts to anything, given time. The first waiver was a wound. The hundredth was a form. The thousandth was a reflex.</p>
+                <p>You retire. You move to a warmer climate. You do not follow the news from Oklahoma. You do not know when the statute is amended. You do not know how many children passed through your courtroom, or where they are now.</p>
+                <p>On your deathbed, you remember one face. Not the first. Not the last. A girl, fifteen, who looked at you not with hope or fear but with a kind of terrible patience, as if she knew that you were only a temporary obstacle in a path that had been laid long before she was born.</p>
+                <p>You close your eyes. The gavel falls one last time. It sounds like a heartbeat stopping.</p>
+            </div>
+            <div class="divider">— THE END —</div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="start-btn" onclick="location.reload()">Begin Again</button>
+            </div>
+        </div>
+
+        <div id="ending-o" class="scene" data-stage="hallway" data-narrate="true">
+            <div class="ending-title">Ending XV — The Recusal</div>
+            <div class="ending-text">"You saved yourself. Whether you saved anyone else is a question you stopped asking."</div>
+            <div class="narrative">
+                <p>You continue to serve. You hear divorce cases, custody disputes, probate matters. You are good at these. You are fair. You are thorough. Your colleagues respect you. The bar association invites you to speak at conferences. You talk about evidence, about procedure, about the craft of judging.</p>
+                <p>You never talk about waivers. You never mention that you recused yourself from an entire category of cases. You never explain why. If anyone asks, you say it was a personal decision. You say it with a smile that closes the subject.</p>
+                <p>But in your dreams, the waiver docket still exists. It exists in a courtroom that is always empty except for you. The petitions pile up on your desk. They are unsigned. They will remain unsigned forever. The children in the gallery do not age. They only wait.</p>
+                <p>You wake up. You go to work. You hear a custody case. You make a ruling. You go home. You sleep. You dream. The cycle continues.</p>
+                <p>You die at seventy-nine. Your obituary calls you a respected jurist. It mentions your contributions to family law. It does not mention the cases you refused to hear. It does not mention the hole in the law that you stepped around rather than falling into.</p>
+                <p>At your funeral, no one speaks of waivers. No one speaks of the statute. They speak of your kindness, your wisdom, your dedication. They speak of the judge you were. They do not speak of the judge you refused to be.</p>
+                <p>The machine outlived you. That was always the point.</p>
+            </div>
+            <div class="divider">— THE END —</div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="start-btn" onclick="location.reload()">Begin Again</button>
+            </div>
+        </div>
+
+        <!-- NEW ENDINGS P through S -->
+
+        <div id="ending-p" class="scene" data-stage="podium" data-narrate="true">
+            <div class="ending-title">Ending XVI — The Voice</div>
+            <div class="ending-text">"You became the story they told about the statute. The story outlived you."</div>
+            <div class="narrative">
+                <p>You continue speaking. You testify before the legislature. You speak at schools. You write op-eds. You become the face of a fight you never wanted to lead. The bar association censures you. The chief judge removes you from administrative committees. Your colleagues avoid you at conferences.</p>
+                <p>But mothers write you letters. Teachers invite you to classrooms. A documentary filmmaker follows you for two years. The film, "The Hole in the Law," wins an award at Sundance. You do not attend the premiere. You are in Oklahoma, testifying before another committee.</p>
+                <p>The bill fails three more times. Each time, it fails by fewer votes. Each time, the debate lasts longer. Each time, more representatives vote yes. You are not the reason. You are one of the reasons. That is enough.</p>
+                <p>At seventy, the bill finally passes. The governor signs it at a ceremony in the capitol rotunda. You are not invited. You watch on television. The minimum age is sixteen. There are exceptions. It is not perfect. It is a floor.</p>
+                <p>You cry. You have not cried in decades. The tears feel foreign, like rain in a desert. You let them fall.</p>
+                <p>You die five years later. The obituary calls you an advocate. It calls you a reformer. It does not call you a judge. You stopped being a judge long before you stopped serving. You became something else. You became the voice that would not stop speaking until the hole was filled.</p>
+                <p>The machine did not outlive you. That was the point.</p>
+            </div>
+            <div class="divider">— THE END —</div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="start-btn" onclick="location.reload()">Begin Again</button>
+            </div>
+        </div>
+
+        <div id="ending-q" class="scene" data-stage="home" data-narrate="true">
+            <div class="ending-title">Ending XVII — The Withdrawal</div>
+            <div class="ending-text">"You stepped back. The crack remained. You did not watch it widen."</div>
+            <div class="narrative">
+                <p>You stop speaking. You have done enough. The crack is there. Let others widen it. You are tired of being the face of the fight. You are tired of being the name in headlines. You are tired.</p>
+                <p>You return to your chambers. You hear your other cases. You do good work. You help families. You protect children in custody disputes. You are a good judge. You are a good judge who once did something brave, and then stopped.</p>
+                <p>The bill passes two years later. You read about it in the newspaper. You feel a flicker of something — pride, maybe, or regret that you are not mentioned, or relief that you are not mentioned. You cannot tell which. You have lost the ability to distinguish between pride and relief.</p>
+                <p>You serve until retirement. You garden. You travel. You visit your grandchildren. You do not think about the waivers. When you do, you think about them as a chapter that closed. You do not think about the children who fell through the hole while the chapter was open.</p>
+                <p>You die at eighty-four. The obituary mentions your service, your family, your garden. It does not mention the article. It does not mention the crack. It does not mention that once, for a moment, you were the voice that spoke for children who could not speak for themselves.</p>
+                <p>The voice stopped. The children did not. That was the point.</p>
+            </div>
+            <div class="divider">— THE END —</div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="start-btn" onclick="location.reload()">Begin Again</button>
+            </div>
+        </div>
+
+        <div id="ending-r" class="scene" data-stage="chambers" data-narrate="true">
+            <div class="ending-title">Ending XVIII — The Beige</div>
+            <div class="ending-text">"You chose the color of not choosing. It was comfortable. Comfort was the trap."</div>
+            <div class="narrative">
+                <p>You accept the beige. Neutrality is not complicity. You refused the docket. That is what you could do. That is what you did. You tell yourself this every morning as you stare at the wall. The wall does not argue. The wall is beige.</p>
+                <p>Years pass. The statute is amended. You read about it in the newspaper. You feel nothing. Feeling is not part of the beige. You continue to serve. You continue to stare at the wall. The wall stares back. The wall is winning.</p>
+                <p>At your retirement party, someone asks about your legacy. You think of the administrative order. You think of the docket you refused. You think of the children who married anyway, in other courtrooms, while you stared at the beige wall.</p>
+                <p>"I did what I could," you say. The words taste like the wall. They taste like nothing. They taste like the color of not choosing.</p>
+                <p>You die staring at a beige wall in a nursing home. The wall is the last thing you see. The wall is the last thing you are. The wall outlives you. The wall always outlives you.</p>
+            </div>
+            <div class="divider">— THE END —</div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="start-btn" onclick="location.reload()">Begin Again</button>
+            </div>
+        </div>
+
+        <div id="ending-s" class="scene" data-stage="podium" data-narrate="true">
+            <div class="ending-title">Ending XIX — The Convert</div>
+            <div class="ending-text">"Some fights choose you. You chose to be chosen."</div>
+            <div class="narrative">
+                <p>You continue. You testify before the legislature. You speak at schools. You become the face of the fight you tried to avoid. You are not a judge anymore. You are an advocate. You are a voice. You are the person who will not stop speaking until the hole is filled.</p>
+                <p>The bill fails again. And again. Each time, you speak louder. Each time, more people listen. Each time, the opposition grows more desperate. They attack you personally. They question your motives. They suggest you are seeking fame, or redemption, or both.</p>
+                <p>You are seeking none of those things. You are seeking only to fill the hole. You are seeking only to stop hearing the gavel in your dreams. You are seeking only to look at yourself in the mirror and see someone who did not look away.</p>
+                <p>The bill passes on the fifth attempt. The governor signs it. You are there. You stand behind the governor. You do not smile. You cry. The cameras capture the tears. The tears become the image of the bill's passage. The tears are more powerful than any speech.</p>
+                <p>You retire from the bench the next year. You do not need the bench anymore. You have become something larger than a judge. You have become a symbol. Symbols do not hear cases. Symbols speak. You speak for the rest of your life.</p>
+                <p>You die at eighty-one. The obituary calls you a reformer, an advocate, a voice for the voiceless. It does not call you a judge. You stopped being a judge the day you chose to be chosen. You became something better. You became something worse. You became someone who could not look away.</p>
+                <p>The hole is filled. The machine stops. That was the point.</p>
+            </div>
+            <div class="divider">— THE END —</div>
+            <div style="text-align:center; margin-top:30px;">
+                <button class="start-btn" onclick="location.reload()">Begin Again</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ===== GAME STATE =====
+        let state = {
+            sanity: 100,
+            authority: 50,
+            guilt: 0,
+            cases: 0
+        };
+
+        let currentSceneId = null;
+        let isSpeaking = false;
+        let speechUtterance = null;
+        let speechQueue = [];
+        let currentQueueIndex = 0;
+        let speechRate = 1.0;
+        let autoPlayEnabled = true;
+
+        // ===== TTS ENGINE =====
+        function initSpeech() {
+            if (!window.speechSynthesis) {
+                document.getElementById('audio-status').textContent = 'Speech not supported in this browser';
+                document.getElementById('play-btn').disabled = true;
+                return false;
+            }
+            return true;
+        }
+
+        function getVoice() {
+            const voices = window.speechSynthesis.getVoices();
+            // Prefer a deep, serious English voice
+            const preferred = voices.find(v => 
+                v.name.includes('Daniel') || 
+                v.name.includes('Google US English') ||
+                v.name.includes('Samantha') ||
+                v.name.includes('Alex')
+            );
+            return preferred || voices.find(v => v.lang.startsWith('en')) || voices[0];
+        }
+
+        function extractNarrativeText(sceneEl) {
+            const paragraphs = sceneEl.querySelectorAll('.narrative p');
+            const texts = [];
+            paragraphs.forEach(p => {
+                // Clean up the text for speech
+                let text = p.textContent.trim();
+                // Remove citation markers
+                text = text.replace(/\[.*?\]/g, '');
+                // Remove excessive whitespace
+                text = text.replace(/\s+/g, ' ');
+                if (text.length > 10) {
+                    texts.push(text);
+                }
+            });
+            return texts;
+        }
+
+        function speakQueue() {
+            if (!speechQueue.length || currentQueueIndex >= speechQueue.length) {
+                isSpeaking = false;
+                document.getElementById('play-btn').textContent = '▶';
+                document.getElementById('audio-status').textContent = 'Narration complete';
+                document.getElementById('audio-status').classList.remove('speaking');
+                highlightParagraph(-1);
+                return;
+            }
+
+            const text = speechQueue[currentQueueIndex];
+            speechUtterance = new SpeechSynthesisUtterance(text);
+            speechUtterance.voice = getVoice();
+            speechUtterance.rate = speechRate;
+            speechUtterance.pitch = 0.9;
+            speechUtterance.volume = 1;
+
+            speechUtterance.onstart = () => {
+                isSpeaking = true;
+                document.getElementById('play-btn').textContent = '⏸';
+                document.getElementById('audio-status').textContent = 'Speaking...';
+                document.getElementById('audio-status').classList.add('speaking');
+                highlightParagraph(currentQueueIndex);
+            };
+
+            speechUtterance.onend = () => {
+                currentQueueIndex++;
+                speakQueue();
+            };
+
+            speechUtterance.onerror = (e) => {
+                console.log('Speech error:', e);
+                currentQueueIndex++;
+                speakQueue();
+            };
+
+            window.speechSynthesis.speak(speechUtterance);
+        }
+
+        function highlightParagraph(index) {
+            const scene = document.getElementById(currentSceneId);
+            if (!scene) return;
+            const paragraphs = scene.querySelectorAll('.narrative p');
+            paragraphs.forEach((p, i) => {
+                p.classList.remove('speaking', 'spoken');
+                if (i === index) {
+                    p.classList.add('speaking');
+                    p.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else if (i < index) {
+                    p.classList.add('spoken');
+                }
+            });
+        }
+
+        function toggleSpeech() {
+            if (!initSpeech()) return;
+
+            if (isSpeaking) {
+                window.speechSynthesis.pause();
+                isSpeaking = false;
+                document.getElementById('play-btn').textContent = '▶';
+                document.getElementById('audio-status').textContent = 'Paused';
+                document.getElementById('audio-status').classList.remove('speaking');
+            } else {
+                if (window.speechSynthesis.paused) {
+                    window.speechSynthesis.resume();
+                    isSpeaking = true;
+                    document.getElementById('play-btn').textContent = '⏸';
+                    document.getElementById('audio-status').textContent = 'Speaking...';
+                    document.getElementById('audio-status').classList.add('speaking');
+                } else {
+                    // Start fresh
+                    currentQueueIndex = 0;
+                    const scene = document.getElementById(currentSceneId);
+                    if (scene) {
+                        speechQueue = extractNarrativeText(scene);
+                        if (speechQueue.length > 0) {
+                            speakQueue();
+                        } else {
+                            document.getElementById('audio-status').textContent = 'No narration in this scene';
+                        }
+                    }
+                }
+            }
+        }
+
+        function stopSpeech() {
+            window.speechSynthesis.cancel();
+            isSpeaking = false;
+            currentQueueIndex = 0;
+            document.getElementById('play-btn').textContent = '▶';
+            document.getElementById('audio-status').textContent = 'Stopped';
+            document.getElementById('audio-status').classList.remove('speaking');
+            highlightParagraph(-1);
+        }
+
+        function updateSpeechRate() {
+            speechRate = parseFloat(document.getElementById('speech-rate').value);
+            if (isSpeaking && speechUtterance) {
+                // Need to restart to apply rate change
+                window.speechSynthesis.cancel();
+                speakQueue();
+            }
+        }
+
+        // ===== VISUAL STAGE =====
+        function switchStage(stageName) {
+            document.querySelectorAll('.stage-scene').forEach(scene => {
+                scene.classList.remove('active');
+            });
+
+            // Find matching stage or default to void
+            const target = document.querySelector(`.stage-scene[data-scene="${stageName}"]`);
+            if (target) {
+                target.classList.add('active');
+            } else {
+                document.querySelector('.stage-scene[data-scene="void"]').classList.add('active');
+            }
+        }
+
+        // ===== GAME FLOW =====
+        function startGame() {
+            document.getElementById('start-screen').classList.remove('active');
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('stats-panel').classList.remove('hidden');
+            document.getElementById('audio-bar').style.display = 'flex';
+            document.getElementById('scene-1').classList.add('active');
+            currentSceneId = 'scene-1';
+
+            state.cases = 1;
+            updateStats();
+            switchStage('courtroom');
+
+            // Auto-start speech after user interaction
+            setTimeout(() => {
+                if (autoPlayEnabled && initSpeech()) {
+                    toggleSpeech();
+                }
+            }, 800);
+        }
+
+        function goTo(sceneId) {
+            stopSpeech();
+
+            // Hide all scenes
+            document.querySelectorAll('.scene').forEach(s => {
+                s.classList.remove('active');
+            });
+
+            // Show target scene
+            const target = document.getElementById(sceneId);
+            if (target) {
+                target.classList.add('active');
+                currentSceneId = sceneId;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                // Switch visual stage
+                const stageName = target.getAttribute('data-stage') || 'void';
+                switchStage(stageName);
+
+                // Auto-play narration for new scene
+                setTimeout(() => {
+                    if (autoPlayEnabled && initSpeech() && target.getAttribute('data-narrate') === 'true') {
+                        currentQueueIndex = 0;
+                        speechQueue = extractNarrativeText(target);
+                        if (speechQueue.length > 0) {
+                            speakQueue();
+                        }
+                    }
+                }, 600);
+            }
+
+            updatePathStats(sceneId);
+        }
+
+        function updateStats() {
+            document.getElementById('sanity').textContent = state.sanity;
+            document.getElementById('authority').textContent = state.authority;
+            document.getElementById('guilt').textContent = state.guilt;
+            document.getElementById('cases').textContent = state.cases;
+
+            const sanityEl = document.getElementById('sanity');
+            if (state.sanity < 30) sanityEl.style.color = '#ff3333';
+            else if (state.sanity < 60) sanityEl.style.color = '#cc8844';
+            else sanityEl.style.color = 'var(--accent)';
+
+            const guiltEl = document.getElementById('guilt');
+            if (state.guilt > 70) guiltEl.style.color = '#ff3333';
+            else if (state.guilt > 40) guiltEl.style.color = '#cc8844';
+            else guiltEl.style.color = 'var(--accent)';
+        }
+
+        function updatePathStats(sceneId) {
+            state.cases++;
+
+            const adjustments = {
+                'scene-2a': { sanity: -15, authority: 10, guilt: 20 },
+                'scene-2b': { sanity: -5, authority: -5, guilt: 10 },
+                'scene-2c': { sanity: -10, authority: 5, guilt: 15 },
+                'scene-3a': { sanity: -25, authority: 15, guilt: 30 },
+                'scene-3b': { sanity: -15, authority: 5, guilt: 25 },
+                'scene-3c': { sanity: -10, authority: -5, guilt: 20 },
+                'scene-3d': { sanity: -15, authority: -10, guilt: 20 },
+                'scene-3e': { sanity: -10, authority: 5, guilt: 25 },
+                'scene-3f': { sanity: -30, authority: -10, guilt: 35 },
+                'scene-3g': { sanity: -20, authority: -15, guilt: 20 },
+                'scene-3h': { sanity: -20, authority: -10, guilt: 30 },
+                'scene-3i': { sanity: -5, authority: -20, guilt: 15 },
+                'scene-4a': { sanity: -15, authority: -25, guilt: 20 },
+                'scene-5a': { sanity: -20, authority: -30, guilt: 25 },
+                'scene-5b': { sanity: -10, authority: -5, guilt: 15 },
+                'scene-6a': { sanity: -15, authority: -20, guilt: 20 }
+            };
+
+            const adj = adjustments[sceneId];
+            if (adj) {
+                state.sanity += adj.sanity;
+                state.authority += adj.authority;
+                state.guilt += adj.guilt;
+            }
+
+            state.sanity = Math.max(0, Math.min(100, state.sanity));
+            state.authority = Math.max(0, Math.min(100, state.authority));
+            state.guilt = Math.max(0, Math.min(100, state.guilt));
+
+            updateStats();
+        }
+
+        function ending(endingId) {
+            stopSpeech();
+
+            document.querySelectorAll('.scene').forEach(s => {
+                s.classList.remove('active');
+            });
+
+            const target = document.getElementById(endingId);
+            if (target) {
+                target.classList.add('active');
+                currentSceneId = endingId;
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                const stageName = target.getAttribute('data-stage') || 'void';
+                switchStage(stageName);
+
+                setTimeout(() => {
+                    if (autoPlayEnabled && initSpeech()) {
+                        currentQueueIndex = 0;
+                        speechQueue = extractNarrativeText(target);
+                        if (speechQueue.length > 0) {
+                            speakQueue();
+                        }
+                    }
+                }, 800);
+            }
+
+            state.cases += 5;
+            updateStats();
+        }
+
+        // Initialize voices
+        window.speechSynthesis.onvoiceschanged = () => {
+            getVoice();
+        };
+
+        // Preload voices
+        if (window.speechSynthesis) {
+            window.speechSynthesis.getVoices();
+        }
+    </script>
+</body>
+</html>
